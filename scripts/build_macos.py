@@ -8,6 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 import argparse
+import shutil
 
 # Get project root directory
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -19,6 +20,35 @@ SRC_DIR = PROJECT_ROOT / "src"
 APP_NAME = "ClinicalDBSAnnot"
 VERSION = "v0.3_testing"
 PLATFORM = "macOS"
+
+
+def update_macos_logo(png_path: Path) -> bool:
+    """Update logobml.png from the provided file and regenerate logobml.icns."""
+    logo_script = PROJECT_ROOT / "scripts" / "make_macOS_logo.sh"
+    target_png = ICONS_DIR / "logobml.png"
+
+    if not png_path.exists():
+        print(f"Error: PNG file not found at {png_path}")
+        return False
+
+    if png_path.suffix.lower() != ".png":
+        print(f"Error: Icon source must be a .png file, got: {png_path}")
+        return False
+
+    if not logo_script.exists():
+        print(f"Error: macOS logo script not found at {logo_script}")
+        return False
+
+    try:
+        shutil.copy2(png_path, target_png)
+        print(f"Updated base icon PNG: {target_png}")
+        subprocess.run(["bash", str(logo_script)], check=True, cwd=PROJECT_ROOT)
+        print(f"Regenerated macOS icon: {ICONS_DIR / 'logobml.icns'}")
+    except (OSError, subprocess.CalledProcessError) as e:
+        print(f"Error: Failed to update macOS icon: {e}")
+        return False
+
+    return True
 
 
 def build_macos_app(*, console: bool, onefile: bool):
@@ -102,7 +132,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--console", action="store_true", help="Build with console window")
     parser.add_argument("--onedir", action="store_true", help="Build as a folder (onedir) instead of a single bundle (onefile)")
+    parser.add_argument(
+        "--mac-logo-png",
+        type=Path,
+        help="Optional PNG path: copy it to icons/logobml.png and regenerate icons/logobml.icns before build",
+    )
     args = parser.parse_args()
+
+    if args.mac_logo_png is not None:
+        if not update_macos_logo(args.mac_logo_png.resolve()):
+            return 1
 
     required_files = [
         ICONS_DIR / "logobml.ico",
