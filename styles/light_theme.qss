@@ -248,6 +248,16 @@ QPushButton[objectName^="preset_"]:pressed, QPushButton[objectName^="preset2_"]:
     background-color: #b45309;
 }
 
+/* Active/Selected Preset Button */
+QPushButton#preset_OCD[active="true"], QPushButton#preset_MDD[active="true"], QPushButton#preset_PD[active="true"], QPushButton#preset_ET[active="true"],
+QPushButton#preset2_OCD[active="true"], QPushButton#preset2_MDD[active="true"], QPushButton#preset2_PD[active="true"], QPushButton#preset2_ET[active="true"],
+QPushButton[objectName^="preset_"][active="true"], QPushButton[objectName^="preset2_"][active="true"] {
+    background-color: #b45309;
+    color: #ffffff;
+    border: 2px solid #92400e;
+    font-weight: 700;
+}
+
 /* Mode Selection Buttons - Large Cards */
 QPushButton#full_mode_button, QPushButton#annotations_only_button {
     background-color: #ffffff;

@@ -35,7 +35,8 @@ class Step0View(QWidget):
 
         # Buttons container - only the two option squares
         buttons_layout = QHBoxLayout()
-     #  buttons_layout.setSpacing(20)
+        buttons_layout.setAlignment(Qt.AlignCenter)
+        buttons_layout.setSpacing(30)
 
         # Full mode button
         self.full_mode_button = QPushButton(

@@ -96,15 +96,18 @@ class WizardController:
         Args:
             view: The Step1View instance
         """
-        # Collect current scales (excluding last empty row)
-        preset_scales = [
-            r[0].text() for r in view.clinical_scales_rows[:-1] if r[0].text()
-        ]
+        # Collect current scales with their values (excluding last empty row)
+        preset_scales = []
+        for name_edit, score_edit, _ in view.clinical_scales_rows[:-1]:
+            name = name_edit.text()
+            score = score_edit.text()
+            if name:
+                preset_scales.append((name, score))
 
         # Check if last row has text to add
         last_row = view.clinical_scales_rows[-1]
         if last_row[0].text():
-            preset_scales.append(last_row[0].text())
+            preset_scales.append((last_row[0].text(), last_row[1].text()))
 
         view.update_clinical_scales(
             preset_scales,
@@ -121,9 +124,11 @@ class WizardController:
             layout: The layout to remove
         """
         preset_scales = []
-        for name_edit, _, row_layout in view.clinical_scales_rows[:-1]:
+        for name_edit, score_edit, row_layout in view.clinical_scales_rows[:-1]:
             if row_layout != layout:
-                preset_scales.append(name_edit.text())
+                name = name_edit.text()
+                score = score_edit.text()
+                preset_scales.append((name, score))
 
         view.update_clinical_scales(
             preset_scales,
@@ -171,15 +176,13 @@ class WizardController:
             layout: The layout to remove
         """
         preset_scales = []
-        for name_edit, scale1_edit, scale2_edit, row_layout in view.session_scales_rows[
-            :-1
-        ]:
+        for row_data in view.session_scales_rows[:-1]:
+            name_edit, scale1_edit, scale2_edit, row_layout = row_data[0], row_data[1], row_data[2], row_data[3]
             if row_layout != layout:
                 name = name_edit.text()
                 minval = scale1_edit.text()
                 maxval = scale2_edit.text()
-                if name:
-                    preset_scales.append((name, minval, maxval))
+                preset_scales.append((name, minval, maxval))
 
         view.update_session_scales(
             preset_scales,

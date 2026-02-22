@@ -55,6 +55,7 @@ class Step2View(BaseStepView):
         self.session_scales_rows: List[
             Tuple[QLineEdit, QLineEdit, QLineEdit, QHBoxLayout, QButtonGroup, QLineEdit]
         ] = []
+        self.active_preset_button: Optional[QPushButton] = None  # Track active preset
         self._setup_ui()
 
     def get_header_title(self) -> str:
@@ -286,11 +287,29 @@ class Step2View(BaseStepView):
             preset_name = btn.objectName().replace("preset2_", "")
             preset_scales = self.session_presets.get(preset_name, [])
 
-            def create_handler(scales):
-                return lambda: self._apply_preset_scales(scales)
+            def create_handler(scales, button):
+                def handler():
+                    self._set_active_preset_button(button)
+                    self._apply_preset_scales(scales)
+                return handler
 
-            btn.clicked.connect(create_handler(preset_scales))
+            btn.clicked.connect(create_handler(preset_scales, btn))
 
+    def _set_active_preset_button(self, button: QPushButton) -> None:
+        """Set the active preset button and update visual state."""
+        # Clear previous active button
+        if self.active_preset_button is not None:
+            self.active_preset_button.setProperty("active", "false")
+            self.active_preset_button.style().unpolish(self.active_preset_button)
+            self.active_preset_button.style().polish(self.active_preset_button)
+        
+        # Set new active button
+        self.active_preset_button = button
+        if button is not None:
+            button.setProperty("active", "true")
+            button.style().unpolish(button)
+            button.style().polish(button)
+    
     def _apply_preset_scales(self, scales: List[Tuple[str, str, str]]):
         """Replace the current session scale rows with the given preset scales."""
         if not isinstance(scales, list):
@@ -352,6 +371,15 @@ class Step2View(BaseStepView):
                     widget.deleteLater()
             self.session_scales_container.removeItem(row_layout)
         self.session_scales_rows = []
+        
+        # Remove any existing stretches from container
+        while self.session_scales_container.count():
+            item = self.session_scales_container.takeAt(0)
+            if item.spacerItem():
+                # Just remove the stretch, no widget to delete
+                continue
+            elif item.widget():
+                item.widget().deleteLater()
 
         # Add preset scales
         for name, minval, maxval in preset_scales:

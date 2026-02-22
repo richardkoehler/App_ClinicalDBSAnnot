@@ -424,9 +424,12 @@ class WizardWindow(QWidget):
         self.setMinimumSize(1, 1)
         self.setMaximumSize(16777215, 16777215)
 
-        # Switch size policy to Ignored so the stack's minimumSizeHint
+        # Force stack to reset its size - critical for preventing button shift from view1
         if hasattr(self, "stack"):
-            self.stack.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
+            self.stack.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            self.stack.setFixedWidth(compact_width - 40)  # Account for margins
+            self.stack.setFixedHeight(compact_height - 100)  # Prevent vertical scrollbar
+            self.stack.adjustSize()
         if hasattr(self, "stack_scroll_area"):
             self.stack_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
@@ -442,9 +445,11 @@ class WizardWindow(QWidget):
     
     def _update_window_size_for_main_workflow(self) -> None:
         """Restore normal window size for main workflow (steps 1+)."""
-        # Restore normal size policies (may have been set to Ignored for step0)
+        # Restore normal size policies and remove fixed constraints from step0
         if hasattr(self, "stack"):
             self.stack.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            self.stack.setMaximumWidth(16777215)  # Remove fixed width
+            self.stack.setMaximumHeight(16777215)  # Remove fixed height
         if hasattr(self, "stack_scroll_area"):
             self.stack_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 

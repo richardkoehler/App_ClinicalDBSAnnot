@@ -69,6 +69,7 @@ class Step1View(BaseStepView):
         self.clinical_scales_rows: List[Tuple[QLineEdit, QLineEdit, QHBoxLayout]] = []
         self.current_file_mode = None  # Track file mode: 'existing', 'new', or None
         self.next_block_id: Optional[int] = None
+        self.active_preset_button: Optional[QPushButton] = None  # Track active preset
 
         self.left_canvas = ElectrodeCanvas()
         self.right_canvas = ElectrodeCanvas()
@@ -880,9 +881,18 @@ class Step1View(BaseStepView):
                                 widget.deleteLater()
                         self.clinical_scales_container.removeItem(row_layout)
                     self.clinical_scales_rows = []
+                    
+                    # Remove any existing stretches from container
+                    while self.clinical_scales_container.count():
+                        item = self.clinical_scales_container.takeAt(0)
+                        if item.spacerItem():
+                            # Just remove the stretch, no widget to delete
+                            continue
+                        elif item.widget():
+                            item.widget().deleteLater()
 
                     for scale_name, scale_value in block0_scales:
-                        self._add_clinical_scale_row(scale_name, scale_value, on_add=self.on_add_callback)
+                        self._add_clinical_scale_row(scale_name, scale_value, with_minus=True, on_remove=self.on_remove_callback)
 
                     self._add_clinical_scale_row("", with_plus=True, on_add=self.on_add_callback)
                     self.clinical_scales_container.addStretch()
@@ -1008,7 +1018,14 @@ class Step1View(BaseStepView):
             scales_to_load = self._pending_scales
             self._pending_scales = []
         else:
-            scales_to_load = [(name, "") for name in preset_scales]
+            # Convert preset_scales to tuples (name, value)
+            scales_to_load = []
+            for item in preset_scales:
+                if isinstance(item, tuple):
+                    scales_to_load.append(item)
+                else:
+                    # Legacy: just a name string, convert to tuple
+                    scales_to_load.append((item, ""))
         
         # Clear existing rows
         for _, _, row_layout in self.clinical_scales_rows:
@@ -1019,6 +1036,15 @@ class Step1View(BaseStepView):
                     widget.deleteLater()
             self.clinical_scales_container.removeItem(row_layout)
         self.clinical_scales_rows = []
+        
+        # Remove any existing stretches from container
+        while self.clinical_scales_container.count():
+            item = self.clinical_scales_container.takeAt(0)
+            if item.spacerItem():
+                # Just remove the stretch, no widget to delete
+                continue
+            elif item.widget():
+                item.widget().deleteLater()
 
         # Add scales (either from pending or preset)
         for item in scales_to_load:
@@ -1061,14 +1087,32 @@ class Step1View(BaseStepView):
                 
                 if preset_scales and isinstance(preset_scales, list):
                     # Create a proper closure using a function
-                    def create_preset_handler(scales):
-                        return lambda: self._apply_preset_scales(scales)
+                    def create_preset_handler(scales, button):
+                        def handler():
+                            self._set_active_preset_button(button)
+                            self._apply_preset_scales(scales)
+                        return handler
                     
-                    btn.clicked.connect(create_preset_handler(preset_scales))
-            else:
-                # Still connect with empty list as fallback
-                btn.clicked.connect(lambda: self._apply_preset_scales([]))
+                    btn.clicked.connect(create_preset_handler(preset_scales, btn))
+                else:
+                    # Still connect with empty list as fallback
+                    btn.clicked.connect(lambda: self._apply_preset_scales([]))
                 
+    def _set_active_preset_button(self, button: QPushButton) -> None:
+        """Set the active preset button and update visual state."""
+        # Clear previous active button
+        if self.active_preset_button is not None:
+            self.active_preset_button.setProperty("active", "false")
+            self.active_preset_button.style().unpolish(self.active_preset_button)
+            self.active_preset_button.style().polish(self.active_preset_button)
+        
+        # Set new active button
+        self.active_preset_button = button
+        if button is not None:
+            button.setProperty("active", "true")
+            button.style().unpolish(button)
+            button.style().polish(button)
+    
     def _apply_preset_scales(self, scales: List[str]):
         """Apply a preset's scales to the clinical scales section."""
         if not isinstance(scales, list):
