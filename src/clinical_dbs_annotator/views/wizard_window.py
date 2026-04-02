@@ -213,11 +213,22 @@ class WizardWindow(QWidget):
         self.header_logo_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
         header_layout.addWidget(self.header_logo_label)
 
+        # Title and subtitle container
+        title_container = QVBoxLayout()
+        title_container.setSpacing(0)  # Ridotto spacing tra titolo e sottotitolo
+        title_container.setContentsMargins(0, 2, 0, 0)  # Margini più stretti
+        
         self.header_title_label = QLabel("")
-        self.header_title_label.setStyleSheet("font-size: 14pt; font-weight: 500;")
-        self.header_title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-        header_layout.addWidget(self.header_title_label)
-
+        self.header_title_label.setStyleSheet("font-size: 12pt; font-weight: 500;")
+        self.header_title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        title_container.addWidget(self.header_title_label)
+        
+        self.header_subtitle_label = QLabel("")
+        self.header_subtitle_label.setStyleSheet("font-size: 8pt; color: #64748b; margin-top: -2px;")
+        self.header_subtitle_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        title_container.addWidget(self.header_subtitle_label)
+        
+        header_layout.addLayout(title_container)
         header_layout.addStretch()  # Push buttons to the right
 
         # Theme toggle button
@@ -265,11 +276,31 @@ class WizardWindow(QWidget):
             return "Longitudinal Report"
         return ""
 
+    def _get_current_header_subtitle(self) -> str:
+        """Return the header subtitle string for the currently visible view."""
+        current = self.stack.currentWidget() if hasattr(self, "stack") else None
+        if current is None:
+            return ""
+
+        if hasattr(current, "get_header_subtitle"):
+            try:
+                return str(current.get_header_subtitle() or "")
+            except Exception:
+                return ""
+
+        # No subtitle fallbacks for other views
+        return ""
+
     def _update_header_title(self) -> None:
-        """Refresh the header title label to match the active view."""
+        """Refresh the header title and subtitle labels to match the active view."""
         if not hasattr(self, "header_title_label"):
             return
         self.header_title_label.setText(self._get_current_header_title())
+        
+        if hasattr(self, "header_subtitle_label"):
+            subtitle = self._get_current_header_subtitle()
+            self.header_subtitle_label.setText(subtitle)
+            self.header_subtitle_label.setVisible(bool(subtitle))  # Hide if empty
 
     def _update_theme_button_icon(self) -> None:
         """Update the theme toggle button icon based on current theme."""
@@ -499,7 +530,7 @@ class WizardWindow(QWidget):
     def _update_window_size_for_step0(self) -> None:
         """Set smaller window size for mode selection (step 0)."""
         compact_width = 620
-        compact_height = 520
+        compact_height = 340
 
         # Reset constraints first to avoid min/max conflicts with previous size
         self.setMinimumSize(1, 1)

@@ -129,6 +129,31 @@ class LongitudinalExporter:
 
     def _build_report(self, file_paths: List[str], out_path: str, sections=None) -> bool:
         """Read all files, merge, and build the Word document."""
+        # Sort files chronologically by earliest date+time in each file
+        def get_file_datetime(path):
+            try:
+                df = pd.read_csv(path, sep="\t")
+                if "date" in df.columns and "time" in df.columns:
+                    # Combine date and time to create datetime for sorting
+                    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"], errors="coerce")
+                    valid_times = df["datetime"].dropna()
+                    if not valid_times.empty:
+                        return valid_times.min()  # Use earliest time in file
+                # Fallback to filename date if available
+                basename = os.path.basename(path)
+                import re
+                date_match = re.search(r'ses-(\d{8})', basename)
+                if date_match:
+                    date_str = date_match.group(1)
+                    return pd.to_datetime(date_str, format="%Y%m%d")
+                # If no date info available, return a very old date to put it at the end
+                return pd.Timestamp("1900-01-01")
+            except Exception:
+                return pd.Timestamp("1900-01-01")
+        
+        # Sort files from oldest to newest
+        file_paths = sorted(file_paths, key=get_file_datetime)
+        
         frames = []
         for path in file_paths:
             try:
@@ -182,7 +207,7 @@ class LongitudinalExporter:
 
         doc.add_paragraph(f"Files included: {len(file_paths)}")
         for fp in file_paths:
-            doc.add_paragraph(f"  \u2022 {os.path.basename(fp)}", style="List Bullet")
+            doc.add_paragraph(f"  {os.path.basename(fp)}")
 
         doc.add_paragraph("")
 
@@ -256,43 +281,53 @@ class LongitudinalExporter:
             session_rows = sub_df
             if "is_initial" in sub_df.columns:
                 session_rows = sub_df[sub_df["is_initial"] == 0]
-            row_cells[3].text = str(len(session_rows))
+            
+            # Count unique block_ids (entries)
+            if "block_id" in session_rows.columns:
+                unique_entries = session_rows["block_id"].nunique()
+            else:
+                unique_entries = len(session_rows)
+            row_cells[3].text = str(unique_entries)
 
-            # Collect scales from is_initial=0 rows with highest block_id per file
+            # Collect scales from is_initial=1 rows with highest block_id per file
             scale_pairs = []
             if "scale_name" in sub_df.columns and "scale_value" in sub_df.columns:
-                # Filter for is_initial=0 only
-                session_df = sub_df.copy()
-                if "is_initial" in session_df.columns:
-                    session_df = session_df[pd.to_numeric(session_df["is_initial"], errors="coerce").fillna(0).astype(int) == 0]
+                # Filter for is_initial=1 only (baseline)
+                baseline_df = sub_df.copy()
+                if "is_initial" in baseline_df.columns:
+                    baseline_df = baseline_df[pd.to_numeric(baseline_df["is_initial"], errors="coerce").fillna(0).astype(int) == 1]
                 
-                if not session_df.empty and "block_id" in session_df.columns:
-                    # Find the row with highest block_id
+                if not baseline_df.empty and "block_id" in baseline_df.columns:
                     try:
-                        session_df["block_id_num"] = pd.to_numeric(session_df["block_id"], errors="coerce")
-                        max_block_row = session_df.loc[session_df["block_id_num"].idxmax()]
+                        baseline_df["block_id_num"] = pd.to_numeric(baseline_df["block_id"], errors="coerce")
+                        max_block = baseline_df["block_id_num"].max()
                         
-                        # Extract scales from that row
-                        sn = str(max_block_row.get("scale_name", "") or "").strip()
-                        sv = str(max_block_row.get("scale_value", "") or "").strip()
+                        # Get ALL rows with the highest block_id (there could be multiple)
+                        max_block_rows = baseline_df[baseline_df["block_id_num"] == max_block]
                         
-                        # Parse multi-line scales (separated by \n)
-                        if sn and sv:
-                            sn_lines = [s.strip() for s in sn.split("\n") if s.strip()]
-                            sv_lines = [s.strip() for s in sv.split("\n") if s.strip()]
+                        # Collect all scale pairs from these rows
+                        all_scales = {}
+                        for _, row in max_block_rows.iterrows():
+                            sn = str(row.get("scale_name", "") or "").strip()
+                            sv = str(row.get("scale_value", "") or "").strip()
                             
-                            # Filter out NaN scales
-                            filtered_pairs = []
-                            for name, val in zip(sn_lines, sv_lines):
-                                if val != "NaN" and val.strip() != "NaN":
-                                    filtered_pairs.append((name, val))
-                            
-                            scale_pairs = filtered_pairs
+                            if sn and sv:
+                                sn_lines = [s.strip() for s in sn.split("\n") if s.strip()]
+                                sv_lines = [s.strip() for s in sv.split("\n") if s.strip()]
+                                
+                                # Store scales, keeping first non-NaN value per scale name
+                                for name, val in zip(sn_lines, sv_lines):
+                                    if val != "NaN" and val.strip() != "NaN":
+                                        if name not in all_scales:
+                                            all_scales[name] = val
+                        
+                        # Convert to list of tuples
+                        scale_pairs = list(all_scales.items())
                     except Exception:
                         scale_pairs = []
 
-            row_cells[4].text = "\n".join(p[0] for p in scale_pairs) if scale_pairs else "—"
-            row_cells[5].text = "\n".join(p[1] for p in scale_pairs) if scale_pairs else "—"
+            row_cells[4].text = "\n".join(p[0] for p in scale_pairs) if scale_pairs else ""
+            row_cells[5].text = "\n".join(p[1] for p in scale_pairs) if scale_pairs else ""
 
     def _add_electrode_config_section(
         self, doc: Document, df_all: pd.DataFrame, file_paths: List[str]
@@ -764,12 +799,17 @@ class LongitudinalExporter:
         for entry_id, block_df in groups:
             first = block_df.iloc[0]
 
-            # Collect scales
+            # Collect scales (filter out NaN values)
             scale_pairs = []
             seen = set()
             for _, r in block_df.iterrows():
                 sn = str(r.get("scale_name", "") or "").strip()
                 sv = str(r.get("scale_value", "") or "").strip()
+                
+                # Skip if scale value is NaN or empty
+                if not sv or sv == "NaN" or sv.strip() == "NaN":
+                    continue
+                
                 if sn and (sn, sv) not in seen:
                     seen.add((sn, sv))
                     scale_pairs.append((sn, sv))

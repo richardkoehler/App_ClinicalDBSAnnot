@@ -27,6 +27,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QStyle,
     QTextEdit,
+    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -128,28 +129,35 @@ class Step1View(BaseStepView):
 
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
-        # Main content area
-        content_layout = QHBoxLayout()
-
         # Left side: File + Initial settings
-        left_layout = QVBoxLayout()
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
         upload_group = self._create_upload_tsv_group()
         settings_group = self._create_settings_group()
         left_layout.addWidget(upload_group)
         left_layout.addWidget(settings_group)
-        #left_layout.addStretch(1)
-        content_layout.addLayout(left_layout)
+        left_widget.setMinimumWidth(500)
 
         # Right side: Clinical scales and notes
-        right_layout = QVBoxLayout()
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
         clinical_group = self._create_clinical_scales_group()
         notes_group = self._create_notes_group()
         right_layout.addWidget(clinical_group)
         right_layout.addWidget(notes_group)
-        #right_layout.addStretch(1) 
-        content_layout.addLayout(right_layout)
+        right_widget.setMinimumWidth(400)
 
-        self.main_layout.addLayout(content_layout)
+        # Splitter: right panel shrinks first (stretch=1), left stays stable (stretch=0)
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.addWidget(left_widget)
+        splitter.addWidget(right_widget)
+        splitter.setStretchFactor(0, 0)  # left: does not absorb resize changes
+        splitter.setStretchFactor(1, 1)  # right: absorbs resize changes first
+        splitter.setChildrenCollapsible(False)
+
+        self.main_layout.addWidget(splitter)
 
         self.next_button = QPushButton("Next")
         self.next_button.setIcon(self.parent_style.standardIcon(QStyle.SP_ArrowForward))

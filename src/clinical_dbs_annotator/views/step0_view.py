@@ -13,10 +13,8 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QPushButton,
     QLabel,
-    QSizePolicy,
     QFrame,
 )
-from PyQt5.QtGui import QFont
 
 
 class Step0View(QWidget):
@@ -33,12 +31,11 @@ class Step0View(QWidget):
         super().__init__(parent)
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(24, 16, 24, 16)
-        self.main_layout.setSpacing(16)
+        self.main_layout.setSpacing(5)
 
         # ── Section 1: Session Notes ──────────────────────────────
-        section1_label = QLabel("Session Notes")
+        section1_label = QLabel("New session")
         section1_label.setObjectName("step0_section_title")
-        section1_label.setFont(QFont("Arial", 13, QFont.DemiBold))
         section1_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.main_layout.addWidget(section1_label)
 
@@ -49,21 +46,15 @@ class Step0View(QWidget):
 
         # Full mode button
         self.full_mode_button = QPushButton(
-            "Annotations + Stimulation\nSettings + Clinical Scales"
+            "Complete workflow"
         )
         self.full_mode_button.setObjectName("full_mode_button")
-        self.full_mode_button.setFixedHeight(150)
-        self.full_mode_button.setFixedWidth(250)
-        self.full_mode_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.full_mode_button.setCursor(Qt.PointingHandCursor)
         notes_buttons_layout.addWidget(self.full_mode_button)
 
         # Annotations only button
-        self.annotations_only_button = QPushButton("Free annotations")
+        self.annotations_only_button = QPushButton("Annotation-only workflow")
         self.annotations_only_button.setObjectName("annotations_only_button")
-        self.annotations_only_button.setFixedHeight(150)
-        self.annotations_only_button.setFixedWidth(250)
-        self.annotations_only_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.annotations_only_button.setCursor(Qt.PointingHandCursor)
         notes_buttons_layout.addWidget(self.annotations_only_button)
 
@@ -76,22 +67,18 @@ class Step0View(QWidget):
         self.main_layout.addWidget(separator)
 
         # ── Section 2: Longitudinal Data ──────────────────────────
-        section2_label = QLabel("Longitudinal Data")
+        section2_label = QLabel("Longitudinal Report")
         section2_label.setObjectName("step0_section_title")
-        section2_label.setFont(QFont("Arial", 13, QFont.DemiBold))
         section2_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.main_layout.addWidget(section2_label)
 
         # Longitudinal report button
         longitudinal_buttons_layout = QHBoxLayout()
         longitudinal_buttons_layout.setAlignment(Qt.AlignCenter)
-        longitudinal_buttons_layout.setSpacing(30)
+        #longitudinal_buttons_layout.setSpacing(10)
 
-        self.longitudinal_report_button = QPushButton("Create Longitudinal\nReport")
+        self.longitudinal_report_button = QPushButton("Create Longitudinal Report")
         self.longitudinal_report_button.setObjectName("longitudinal_report_button")
-        self.longitudinal_report_button.setFixedHeight(150)
-        self.longitudinal_report_button.setFixedWidth(250)
-        self.longitudinal_report_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.longitudinal_report_button.setCursor(Qt.PointingHandCursor)
         longitudinal_buttons_layout.addWidget(self.longitudinal_report_button)
 
@@ -99,3 +86,11 @@ class Step0View(QWidget):
 
         # Add stretch to push content up
         self.main_layout.addStretch(1)
+
+    def get_header_title(self) -> str:
+        """Return the wizard header title for Step 0."""
+        return "Clinical DBS Annotator"
+
+    def get_header_subtitle(self) -> str:
+        """Return the wizard header subtitle for Step 0."""
+        return "Record and analyze deep brain stimulation programming sessions"

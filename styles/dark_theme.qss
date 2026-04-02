@@ -209,15 +209,28 @@ QPushButton[objectName^="preset_"][active="true"], QPushButton[objectName^="pres
     font-weight: 700;
 }
 
+/* Step 0 Section Titles */
+QLabel#step0_section_title {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 6px 0px 4px 8px;
+    border-left: 3px solid #f59e0b;
+    background: transparent;
+}
+
 /* Mode Selection Buttons - preserved original sizing & text, enhanced style (3D, glossy, hover, pressed) */
 QPushButton#full_mode_button, QPushButton#annotations_only_button, QPushButton#longitudinal_report_button {
+    min-width: 160px;
     /* mantenuto come nell'originale: dimensione percepita basata su padding */
-    padding: 20px;
-    font-size: 14px;
-    font-weight: 700;
     color: #f1f5f9;
     text-align: center;
     border-radius: 12px;
+    padding: 16px;
+    font-size: 12px;
+    font-weight: 600;
     border: 2px solid #475569;
 
     /* 3D gradient + glossy highlight */
@@ -350,10 +363,8 @@ QPushButton#theme_toggle {
     background-color: #334155;
     border: 1px solid #475569;
     border-radius: 16px;
-    min-width: 32px;
-    max-width: 50px;
-    min-height: 32px;
-    max-height: 50px;
+    width: 40px;
+    height: 40px;
     padding: 0;
     font-size: 14px;
 }

@@ -15,14 +15,12 @@ No.  All data stays on your local machine.  No telemetry, no cloud sync.
 **Which DBS systems are supported?**
 
 The application is system-agnostic for data recording.  Electrode visualisation
-supports leads from Medtronic (including Percept PC / RC), Abbott (Infinity),
-and Boston Scientific (Vercise) families.  If your lead is not listed, use the
-closest equivalent or contact the development team to request it be added.
+supports leads from Medtronic (including Percept PC / RC), Abbott (Infinity), Boston Scientific (Vercise) and PINS families.  
+If your lead is not listed, use the closest equivalent or contact the development team to request it be added.
 
 **Can I use the application on a shared clinical workstation?**
 
-Yes.  The application does not require installation and writes no registry
-entries.  You can run it directly from a USB drive or a shared network folder.
+Yes.  The application is easily installable and does not require installation or registry entries.
 
 ----
 
@@ -53,7 +51,7 @@ You can, but be careful:
 
 **What happens if the application crashes mid-session?**
 
-All entries are written to disk immediately as they are recorded.  You will not
+All entries are written to disk immediately as they are recorded in the TSV file.  You will not
 lose any data that was successfully recorded before the crash.  Reopen the
 application, start a new session pointing to the same folder, and the existing
 file will be detected.
@@ -142,6 +140,4 @@ Contact & Support
 
 For bug reports, feature requests, or questions:
 
-| **Lucia Poma** — lpoma@mgh.harvard.edu
-| Brain Modulation Lab, Massachusetts General Hospital
-| Boston, MA, USA
+| **Lucia Poma** — lucia.poma@wysscenter.ch

@@ -5,7 +5,7 @@ with anodic/cathodic modes and case (ground) support
 Based on Lead-DBS repository models
 """
 
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QSizePolicy
 from PyQt5.QtCore import Qt, QRectF, QPointF
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPolygonF, QPalette, QPainterPath, QPainterPathStroker, QLinearGradient, QRadialGradient
 
@@ -32,12 +32,13 @@ class ElectrodeCanvas(QWidget):
         self.hovered_ring = None
         self.hovered_case = False
         self.validation_callback = None  # Callback for validation
-        self.setMinimumWidth(120)
+        self.setMinimumWidth(160)
         self.setContentsMargins(2, 2, 2, 2)
         self.setAutoFillBackground(False)
         self.setMouseTracking(True)
         self.setCursor(Qt.PointingHandCursor)
         self.export_mode = False
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
     def set_export_mode(self, enabled: bool) -> None:
         """Toggle export mode (tighter padding, larger scale for PNG output)."""
@@ -65,25 +66,32 @@ class ElectrodeCanvas(QWidget):
         return self.model.is_level_directional(contact_idx)
         
     def calculate_scale(self):
-        """Calculate optimal scale to fit electrode in canvas based on height only"""
+        """Calculate exact scale to fill the canvas with the electrode drawing."""
         if not self.model:
             return 20
-            
+
         contacts_total_mm = (
             self.model.num_contacts * self.model.contact_height
             + max(0, self.model.num_contacts - 1) * self.model.contact_spacing
         )
-        total_height_mm = contacts_total_mm + 18
-        
-        # Calculate scale based on height only
-        # In export mode, reduce top/bottom padding so the electrode occupies more space.
-        available_height = max(1, self.height() - (10 if self.export_mode else 60))
-        
-        scale_height = available_height / total_height_mm
-        
-        # Apply only height-based scaling with max limit
-        max_scale = 80 if self.export_mode else 40
-        return min(scale_height * 1.2, max_scale)
+
+        # Fixed pixel overhead (not scale-dependent):
+        #   top_padding (before case) + lead_gap (case to lead body)
+        top_padding = 2 if self.export_mode else 7
+        lead_gap = 8 if self.export_mode else 15
+        fixed_px = top_padding + lead_gap
+
+        # Scale-dependent overhead in mm:
+        #   case(4mm) + initial_y_offset(2mm) + 1mm per inter-contact gap + tail(0.3mm)
+        scale_overhead_mm = 4.0 + 2.0 + max(0, self.model.num_contacts - 1) * 1.0 + 0.3
+        scaled_mm = contacts_total_mm + scale_overhead_mm
+
+        # Exact formula: fixed_px + scaled_mm * scale = canvas_height
+        usable = max(1, self.height() - fixed_px - 2)  # 2px safety margin
+        scale = usable / scaled_mm
+
+        max_scale = 80 if self.export_mode else 24
+        return min(scale, max_scale)
         
     def get_contact_at_pos(self, pos):
         """Return contact (contact_index, segment_index) at mouse position"""
@@ -416,7 +424,7 @@ class ElectrodeCanvas(QWidget):
                 ring_cap_width = lead_width * 1.1  # Will be recalculated below
                 ring_cap_rect = QRectF(
                     center_x - ring_cap_width/2,
-                    current_y - ring_cap_height * 0.7,
+                    current_y - ring_cap_height,
                     ring_cap_width,
                     ring_cap_height
                 )
@@ -540,7 +548,7 @@ class ElectrodeCanvas(QWidget):
                 ring_cap_width = c_right - a_left
                 ring_cap_rect = QRectF(
                     a_left,
-                    current_y - ring_cap_height * 0.7,
+                    current_y - ring_cap_height * 0.9,
                     ring_cap_width,
                     ring_cap_height
                 )

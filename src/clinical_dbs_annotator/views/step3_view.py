@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QStyle,
     QTextEdit,
+    QSplitter,
     QVBoxLayout,
     QWidget,
     QMenu,
@@ -81,9 +82,6 @@ class Step3View(BaseStepView):
         self.main_layout.setSpacing(8)
         self.main_layout.setContentsMargins(12, 8, 12, 8)
 
-        # Main content area
-        content_layout = QHBoxLayout()
-
         # Left macro-panel: Stimulation params + electrodes
         left_container = QGroupBox("Session settings")
         left_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -120,18 +118,27 @@ class Step3View(BaseStepView):
         left_container_layout.addLayout(electrodes_layout, 2)
 
         # Right macro-panel: Scales and notes
-        right_layout = QVBoxLayout()
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
         scales_group = self._create_session_scales_group()
         right_layout.addWidget(scales_group)
         right_layout.addWidget(create_horizontal_line())
         notes_group = self._create_notes_group()
         right_layout.addWidget(notes_group)
 
-        # Force 50/50 width between left macro-panel and right panel
-        content_layout.addWidget(left_container, 1)
-        content_layout.addLayout(right_layout, 1)
+        left_container.setMinimumWidth(500)
+        right_widget.setMinimumWidth(400)
 
-        self.main_layout.addLayout(content_layout)
+        # Splitter: right panel shrinks first (stretch=1), left stays stable (stretch=0)
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.addWidget(left_container)
+        splitter.addWidget(right_widget)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setChildrenCollapsible(False)
+
+        self.main_layout.addWidget(splitter)
         #self.main_layout.addStretch(1)
 
         self.insert_button = QPushButton("Insert")
