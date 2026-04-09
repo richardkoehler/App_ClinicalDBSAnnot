@@ -5,7 +5,6 @@ This module contains the view for the third step where users actively record
 session data including stimulation parameters and scale values.
 """
 
-
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QDoubleValidator, QIcon, QIntValidator
 from PySide6.QtWidgets import (
@@ -141,7 +140,9 @@ class Step3View(BaseStepView):
         self.left_canvas_group = QGroupBox("Left electrode")
         self.left_canvas_group.setCheckable(True)
         self.left_canvas_group.setChecked(True)
-        self.left_canvas_group.toggled.connect(lambda checked: self._toggle_electrode('left', checked))
+        self.left_canvas_group.toggled.connect(
+            lambda checked: self._toggle_electrode("left", checked)
+        )
         left_canvas_layout = QVBoxLayout()
         left_canvas_layout.addWidget(self.left_canvas, 1)
         self.left_canvas_group.setLayout(left_canvas_layout)
@@ -149,7 +150,9 @@ class Step3View(BaseStepView):
         self.right_canvas_group = QGroupBox("Right electrode")
         self.right_canvas_group.setCheckable(True)
         self.right_canvas_group.setChecked(True)
-        self.right_canvas_group.toggled.connect(lambda checked: self._toggle_electrode('right', checked))
+        self.right_canvas_group.toggled.connect(
+            lambda checked: self._toggle_electrode("right", checked)
+        )
         right_canvas_layout = QVBoxLayout()
         right_canvas_layout.addWidget(self.right_canvas, 1)
         self.right_canvas_group.setLayout(right_canvas_layout)
@@ -171,7 +174,7 @@ class Step3View(BaseStepView):
         notes_group = self._create_session_notes_group()
         right_layout.addWidget(notes_group)
 
-        #left_container.setMinimumWidth(500)
+        # left_container.setMinimumWidth(500)
         right_widget.setMinimumWidth(400)
 
         # Splitter: right panel shrinks first (stretch=1), left stays stable (stretch=0)
@@ -183,7 +186,7 @@ class Step3View(BaseStepView):
         splitter.setChildrenCollapsible(False)
 
         self.main_layout.addWidget(splitter)
-        #self.main_layout.addStretch(1)
+        # self.main_layout.addStretch(1)
 
         self.insert_button = QPushButton("Insert")
         self.insert_button.setIcon(
@@ -221,7 +224,7 @@ class Step3View(BaseStepView):
         """Create the stimulation parameters container."""
         container = QWidget()
         container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        #container.setMinimumWidth(380)
+        # container.setMinimumWidth(380)
         sidebar_layout = QVBoxLayout(container)
 
         group_row = QGroupBox("Program")
@@ -258,7 +261,9 @@ class Step3View(BaseStepView):
         self.session_left_stim_freq_edit = QLineEdit()
         self.session_left_stim_freq_edit.setMaximumWidth(80)
         self.session_left_stim_freq_edit.setPlaceholderText(PLACEHOLDERS["frequency"])
-        self.session_left_stim_freq_edit.setValidator(QIntValidator(freq_limits["min"], freq_limits["max"]))
+        self.session_left_stim_freq_edit.setValidator(
+            QIntValidator(freq_limits["min"], freq_limits["max"])
+        )
         left_freq_widget = IncrementWidget(
             self.session_left_stim_freq_edit,
             step1=freq_limits["step1"],
@@ -275,7 +280,11 @@ class Step3View(BaseStepView):
         self.session_left_amp_edit = QLineEdit()
         self.session_left_amp_edit.setMaximumWidth(80)
         self.session_left_amp_edit.setPlaceholderText(PLACEHOLDERS["amplitude"])
-        self.session_left_amp_edit.setValidator(QDoubleValidator(amp_limits["min"], amp_limits["max"], amp_limits["decimals"]))
+        self.session_left_amp_edit.setValidator(
+            QDoubleValidator(
+                amp_limits["min"], amp_limits["max"], amp_limits["decimals"]
+            )
+        )
         left_amp_widget = IncrementWidget(
             self.session_left_amp_edit,
             step1=amp_limits["step1"],
@@ -292,7 +301,9 @@ class Step3View(BaseStepView):
         self.session_left_pw_edit = QLineEdit()
         self.session_left_pw_edit.setMaximumWidth(80)
         self.session_left_pw_edit.setPlaceholderText(PLACEHOLDERS["pulse_width"])
-        self.session_left_pw_edit.setValidator(QIntValidator(pw_limits["min"], pw_limits["max"]))
+        self.session_left_pw_edit.setValidator(
+            QIntValidator(pw_limits["min"], pw_limits["max"])
+        )
         left_pw_widget = IncrementWidget(
             self.session_left_pw_edit,
             step1=pw_limits["step1"],
@@ -335,7 +346,9 @@ class Step3View(BaseStepView):
         self.session_right_stim_freq_edit = QLineEdit()
         self.session_right_stim_freq_edit.setMaximumWidth(80)
         self.session_right_stim_freq_edit.setPlaceholderText(PLACEHOLDERS["frequency"])
-        self.session_right_stim_freq_edit.setValidator(QIntValidator(freq_limits["min"], freq_limits["max"]))
+        self.session_right_stim_freq_edit.setValidator(
+            QIntValidator(freq_limits["min"], freq_limits["max"])
+        )
         right_freq_widget = IncrementWidget(
             self.session_right_stim_freq_edit,
             step1=freq_limits["step1"],
@@ -352,7 +365,11 @@ class Step3View(BaseStepView):
         self.session_right_amp_edit = QLineEdit()
         self.session_right_amp_edit.setMaximumWidth(80)
         self.session_right_amp_edit.setPlaceholderText(PLACEHOLDERS["amplitude"])
-        self.session_right_amp_edit.setValidator(QDoubleValidator(amp_limits["min"], amp_limits["max"], amp_limits["decimals"]))
+        self.session_right_amp_edit.setValidator(
+            QDoubleValidator(
+                amp_limits["min"], amp_limits["max"], amp_limits["decimals"]
+            )
+        )
         right_amp_widget = IncrementWidget(
             self.session_right_amp_edit,
             step1=amp_limits["step1"],
@@ -369,7 +386,9 @@ class Step3View(BaseStepView):
         self.session_right_pw_edit = QLineEdit()
         self.session_right_pw_edit.setMaximumWidth(80)
         self.session_right_pw_edit.setPlaceholderText(PLACEHOLDERS["pulse_width"])
-        self.session_right_pw_edit.setValidator(QIntValidator(pw_limits["min"], pw_limits["max"]))
+        self.session_right_pw_edit.setValidator(
+            QIntValidator(pw_limits["min"], pw_limits["max"])
+        )
         right_pw_widget = IncrementWidget(
             self.session_right_pw_edit,
             step1=pw_limits["step1"],
@@ -390,7 +409,9 @@ class Step3View(BaseStepView):
         self.right_config_box = QFrame()
         self.right_config_box.setStyleSheet("background: transparent; border: none;")
         self.right_config_box.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.right_config_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.right_config_box.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding
+        )
         right_config_layout = QVBoxLayout(self.right_config_box)
         right_config_layout.setContentsMargins(6, 4, 6, 4)
         self.right_config_label = QLabel()
@@ -421,7 +442,9 @@ class Step3View(BaseStepView):
             row.setContentsMargins(0, 0, 0, 0)
             swatch = QLabel()
             swatch.setFixedSize(16, 12)
-            swatch.setStyleSheet(f"background-color: {color}; border: 1px solid {border};")
+            swatch.setStyleSheet(
+                f"background-color: {color}; border: 1px solid {border};"
+            )
             label = QLabel(text)
             row.addWidget(swatch)
             row.addSpacing(6)
@@ -442,7 +465,9 @@ class Step3View(BaseStepView):
         self.update_configuration_display()
         if hasattr(self, "left_amp_split"):
             cathode_labels = get_cathode_labels(self.left_canvas)
-            is_single_grouped = self._is_single_grouped_directional(cathode_labels, self.left_canvas)
+            is_single_grouped = self._is_single_grouped_directional(
+                cathode_labels, self.left_canvas
+            )
             self.left_amp_split.update_cathodes(cathode_labels, is_single_grouped)
 
     def _on_right_canvas_validation(self, is_valid: bool, error_msg: str) -> None:
@@ -451,7 +476,9 @@ class Step3View(BaseStepView):
         self.update_configuration_display()
         if hasattr(self, "right_amp_split"):
             cathode_labels = get_cathode_labels(self.right_canvas)
-            is_single_grouped = self._is_single_grouped_directional(cathode_labels, self.right_canvas)
+            is_single_grouped = self._is_single_grouped_directional(
+                cathode_labels, self.right_canvas
+            )
             self.right_amp_split.update_cathodes(cathode_labels, is_single_grouped)
 
     def set_electrode_model(self, model) -> None:
@@ -463,7 +490,9 @@ class Step3View(BaseStepView):
 
     def update_configuration_display(self) -> None:
         """Refresh the configuration validity labels for both sides."""
-        if not hasattr(self, "left_config_label") or not hasattr(self, "right_config_label"):
+        if not hasattr(self, "left_config_label") or not hasattr(
+            self, "right_config_label"
+        ):
             return
         self.left_config_label.setText("✓ Configuration valid")
         self.right_config_label.setText("✓ Configuration valid")
@@ -477,7 +506,9 @@ class Step3View(BaseStepView):
                 self.left_config_box.setStyleSheet("border: 2px solid #cc0000;")
                 self.left_config_label.setStyleSheet("color: #cc0000;")
                 self.left_config_label.setProperty("class", "")
-                self.left_config_label.setText("Invalid configuration: violates selection rules")
+                self.left_config_label.setText(
+                    "Invalid configuration: violates selection rules"
+                )
             else:
                 self.left_config_box.setStyleSheet("")
                 self.left_config_label.setStyleSheet("")
@@ -493,7 +524,9 @@ class Step3View(BaseStepView):
                 self.right_config_box.setStyleSheet("border: 2px solid #cc0000;")
                 self.right_config_label.setStyleSheet("color: #cc0000;")
                 self.right_config_label.setProperty("class", "")
-                self.right_config_label.setText("Invalid configuration: violates selection rules")
+                self.right_config_label.setText(
+                    "Invalid configuration: violates selection rules"
+                )
             else:
                 self.right_config_box.setStyleSheet("")
                 self.right_config_label.setStyleSheet("")
@@ -524,10 +557,12 @@ class Step3View(BaseStepView):
             for contact_id in sorted(canvas.contact_states.keys()):
                 contact_idx, seg_idx = contact_id
                 state = canvas.contact_states[contact_id]
-                state_str = "Anodic (+)" if state == ContactState.ANODIC else "Cathodic (-)"
+                state_str = (
+                    "Anodic (+)" if state == ContactState.ANODIC else "Cathodic (-)"
+                )
 
                 if model.is_directional:
-                    segment_labels = ['a', 'b', 'c']
+                    segment_labels = ["a", "b", "c"]
                     contact_name = f"C{contact_idx}{segment_labels[seg_idx]}"
                 else:
                     contact_name = f"C{contact_idx}"
@@ -574,7 +609,10 @@ class Step3View(BaseStepView):
 
                 if is_contact_directional:
                     # This contact has segments - check individual segments
-                    seg_states = [canvas.contact_states.get((contact_idx, seg), ContactState.OFF) for seg in range(3)]
+                    seg_states = [
+                        canvas.contact_states.get((contact_idx, seg), ContactState.OFF)
+                        for seg in range(3)
+                    ]
 
                     # Always show individual segments, never group them
                     seg_labels = ["a", "b", "c"]
@@ -585,7 +623,9 @@ class Step3View(BaseStepView):
                             cathode_items.append(f"E{contact_idx}{seg_labels[seg]}")
                 else:
                     # This contact is a ring contact - no segments
-                    state = canvas.contact_states.get((contact_idx, 0), ContactState.OFF)
+                    state = canvas.contact_states.get(
+                        (contact_idx, 0), ContactState.OFF
+                    )
                     if state == ContactState.ANODIC:
                         anode_items.append(f"E{contact_idx}")
                     elif state == ContactState.CATHODIC:
@@ -608,7 +648,7 @@ class Step3View(BaseStepView):
 
         lbl = cathode_labels[0]
         # Check if this is a grouped contact (E1, E2, etc., not E1a, E1b)
-        is_grouped = (len(lbl) >= 2 and lbl[0] == 'E' and lbl[1:].isdigit())
+        is_grouped = len(lbl) >= 2 and lbl[0] == "E" and lbl[1:].isdigit()
 
         if not is_grouped:
             return False
@@ -630,7 +670,7 @@ class Step3View(BaseStepView):
                 for seg in range(3)
             ]
             return all(state == ContactState.CATHODIC for state in seg_states)
-        except (ValueError, IndexError):
+        except ValueError, IndexError:
             return False
 
     def _create_session_scales_group(self) -> QGroupBox:
@@ -662,7 +702,7 @@ class Step3View(BaseStepView):
         """Toggle electrode enable/disable state for canvas and settings."""
         from PySide6.QtWidgets import QGraphicsOpacityEffect
 
-        if side == 'left':
+        if side == "left":
             self.left_electrode_enabled = checked
             self.left_group.setEnabled(checked)
             self.left_canvas.setEnabled(checked)
@@ -674,7 +714,7 @@ class Step3View(BaseStepView):
                     widget.setGraphicsEffect(effect)
                 else:
                     widget.setGraphicsEffect(None)
-        elif side == 'right':
+        elif side == "right":
             self.right_electrode_enabled = checked
             self.right_group.setEnabled(checked)
             self.right_canvas.setEnabled(checked)
@@ -705,7 +745,9 @@ class Step3View(BaseStepView):
         # Annotation text area
         self.session_notes_edit = QTextEdit()
         self.session_notes_edit.setPlaceholderText("Type your notes here...")
-        self.session_notes_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.session_notes_edit.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding
+        )
         self.session_notes_edit.setMinimumHeight(100)
         layout.addWidget(self.session_notes_edit)
 
@@ -726,7 +768,7 @@ class Step3View(BaseStepView):
 
         # Add scale inputs
         # Step2 provides tuples: (name, min, max). We also support a plain list of names.
-        for item in (scale_names or []):
+        for item in scale_names or []:
             if isinstance(item, (tuple, list)) and len(item) >= 1:
                 name = item[0]
                 min_val = item[1] if len(item) >= 2 else ""
@@ -816,9 +858,13 @@ class Step3View(BaseStepView):
                 pass
 
         if self.left_canvas.model:
-            self._apply_contact_text_to_canvas(self.left_canvas, left_anode, left_cathode)
+            self._apply_contact_text_to_canvas(
+                self.left_canvas, left_anode, left_cathode
+            )
         if self.right_canvas.model:
-            self._apply_contact_text_to_canvas(self.right_canvas, right_anode, right_cathode)
+            self._apply_contact_text_to_canvas(
+                self.right_canvas, right_anode, right_cathode
+            )
 
         self.update_configuration_display()
 
@@ -837,10 +883,12 @@ class Step3View(BaseStepView):
             total = sum(float(p) for p in parts)
             # Format to 2 decimal places, removing trailing zeros
             return f"{total:.2f}".rstrip("0").rstrip(".")
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return amp_str
 
-    def _apply_contact_text_to_canvas(self, canvas: ElectrodeCanvas, anode_text: str, cathode_text: str) -> None:
+    def _apply_contact_text_to_canvas(
+        self, canvas: ElectrodeCanvas, anode_text: str, cathode_text: str
+    ) -> None:
         """Parse anode/cathode token strings and set the corresponding canvas states."""
         model = canvas.model
         if not model:
@@ -907,7 +955,9 @@ class Step3View(BaseStepView):
         apply_tokens(anode_text, ContactState.ANODIC)
         apply_tokens(cathode_text, ContactState.CATHODIC)
 
-        is_valid, _ = StimulationRule.validate_configuration(canvas.contact_states, canvas.case_state)
+        is_valid, _ = StimulationRule.validate_configuration(
+            canvas.contact_states, canvas.case_state
+        )
         if not is_valid:
             canvas.contact_states.clear()
             canvas.case_state = ContactState.OFF
@@ -916,11 +966,15 @@ class Step3View(BaseStepView):
         # Refresh amplitude split widget for this canvas
         if canvas is self.left_canvas and hasattr(self, "left_amp_split"):
             cathode_labels = get_cathode_labels(self.left_canvas)
-            is_single_grouped = self._is_single_grouped_directional(cathode_labels, self.left_canvas)
+            is_single_grouped = self._is_single_grouped_directional(
+                cathode_labels, self.left_canvas
+            )
             self.left_amp_split.update_cathodes(cathode_labels, is_single_grouped)
         elif canvas is self.right_canvas and hasattr(self, "right_amp_split"):
             cathode_labels = get_cathode_labels(self.right_canvas)
-            is_single_grouped = self._is_single_grouped_directional(cathode_labels, self.right_canvas)
+            is_single_grouped = self._is_single_grouped_directional(
+                cathode_labels, self.right_canvas
+            )
             self.right_amp_split.update_cathodes(cathode_labels, is_single_grouped)
 
     def _edit_program_names(self) -> None:
@@ -947,7 +1001,11 @@ class Step3View(BaseStepView):
         input_layout.addWidget(new_program_edit)
 
         add_btn = QPushButton("Add")
-        add_btn.clicked.connect(lambda: self._add_program_to_list(new_program_edit.text(), list_widget, program_config))
+        add_btn.clicked.connect(
+            lambda: self._add_program_to_list(
+                new_program_edit.text(), list_widget, program_config
+            )
+        )
         input_layout.addWidget(add_btn)
         layout.addLayout(input_layout)
 
@@ -960,8 +1018,16 @@ class Step3View(BaseStepView):
         layout.addLayout(button_layout)
 
         # Connect edit/remove buttons
-        edit_btn.clicked.connect(lambda: self._edit_selected_program(list_widget, program_config, default_programs))
-        remove_btn.clicked.connect(lambda: self._remove_selected_program(list_widget, program_config, default_programs))
+        edit_btn.clicked.connect(
+            lambda: self._edit_selected_program(
+                list_widget, program_config, default_programs
+            )
+        )
+        remove_btn.clicked.connect(
+            lambda: self._remove_selected_program(
+                list_widget, program_config, default_programs
+            )
+        )
 
         # Dialog buttons
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -980,10 +1046,14 @@ class Step3View(BaseStepView):
             else:
                 self.group_combo.setCurrentIndex(0)
 
-    def _add_program_to_list(self, name: str, list_widget: QListWidget, program_config: ProgramConfigManager) -> None:
+    def _add_program_to_list(
+        self, name: str, list_widget: QListWidget, program_config: ProgramConfigManager
+    ) -> None:
         """Add a new program to the list."""
         if not name or name in ProgramConfigManager.DEFAULT_PROGRAMS:
-            QMessageBox.warning(self, "Error", "Program name cannot be empty or match default programs.")
+            QMessageBox.warning(
+                self, "Error", "Program name cannot be empty or match default programs."
+            )
             return
 
         if program_config.add_program(name):
@@ -991,7 +1061,12 @@ class Step3View(BaseStepView):
         else:
             QMessageBox.warning(self, "Error", "Program name already exists.")
 
-    def _edit_selected_program(self, list_widget: QListWidget, program_config: ProgramConfigManager, default_programs: list[str]) -> None:
+    def _edit_selected_program(
+        self,
+        list_widget: QListWidget,
+        program_config: ProgramConfigManager,
+        default_programs: list[str],
+    ) -> None:
         """Edit the selected program name."""
         current_item = list_widget.currentItem()
         if not current_item:
@@ -1001,10 +1076,14 @@ class Step3View(BaseStepView):
         old_name = current_item.text()
         from PySide6.QtWidgets import QInputDialog
 
-        new_name, ok = QInputDialog.getText(self, "Edit Program", "New program name:", QLineEdit.Normal, old_name)
+        new_name, ok = QInputDialog.getText(
+            self, "Edit Program", "New program name:", QLineEdit.Normal, old_name
+        )
         if ok and new_name:
             if new_name in default_programs:
-                QMessageBox.warning(self, "Error", "Cannot rename to a default program name.")
+                QMessageBox.warning(
+                    self, "Error", "Cannot rename to a default program name."
+                )
                 return
 
             if program_config.update_program(old_name, new_name):
@@ -1012,7 +1091,12 @@ class Step3View(BaseStepView):
             else:
                 QMessageBox.warning(self, "Error", "Failed to update program name.")
 
-    def _remove_selected_program(self, list_widget: QListWidget, program_config: ProgramConfigManager, default_programs: list[str]) -> None:
+    def _remove_selected_program(
+        self,
+        list_widget: QListWidget,
+        program_config: ProgramConfigManager,
+        default_programs: list[str],
+    ) -> None:
         """Remove the selected program name."""
         current_item = list_widget.currentItem()
         if not current_item:
@@ -1024,7 +1108,12 @@ class Step3View(BaseStepView):
             QMessageBox.warning(self, "Error", "Cannot remove default programs.")
             return
 
-        reply = QMessageBox.question(self, "Confirm", f"Remove program '{name}'?", QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(
+            self,
+            "Confirm",
+            f"Remove program '{name}'?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
         if reply == QMessageBox.Yes:
             if program_config.remove_program(name):
                 list_widget.takeItem(list_widget.row(current_item))
