@@ -57,9 +57,9 @@ Columns
    * - ``electrode_model``
      - string
      - Name of the electrode model selected (e.g. ``SenSight B33015``).
-   * - ``group_ID``
+   * - ``program_ID``
      - string
-     - Stimulation group label (e.g. ``A``, ``B``).
+     - Stimulation program label (e.g. ``A``, ``B``, ``None``).
    * - ``scale_name``
      - string
      - Name of the clinical scale recorded in this row (may be empty if
