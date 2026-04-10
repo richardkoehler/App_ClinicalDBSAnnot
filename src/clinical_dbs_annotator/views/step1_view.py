@@ -100,6 +100,10 @@ class Step1View(BaseStepView):
 
         self._setup_ui()
 
+    def get_header_title(self) -> str:
+        """Return the wizard header title for Step 1."""
+        return "Clinical Programming Session Setup"
+
     def _is_single_grouped_directional(self, cathode_labels: list[str], canvas) -> bool:
         """Check if a single cathode label represents a grouped directional contact."""
         if len(cathode_labels) != 1 or not canvas or not canvas.model:
@@ -234,8 +238,6 @@ class Step1View(BaseStepView):
         edit_programs_btn.setObjectName("programSettingsButton")
         edit_programs_btn.clicked.connect(self._edit_program_names)
         group_row_layout.addWidget(edit_programs_btn)
-
-        group_row_layout.addStretch()
 
         group_row.setLayout(group_row_layout)
 
@@ -439,6 +441,7 @@ class Step1View(BaseStepView):
         sidebar_scroll.setFrameShape(QFrame.NoFrame)
         sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        sidebar_scroll.setMinimumWidth(380)
         sidebar_scroll.setWidget(sidebar_widget)
 
         electrodes_layout = QVBoxLayout()
@@ -933,25 +936,6 @@ class Step1View(BaseStepView):
                 else:
                     widget.setGraphicsEffect(None)
 
-    def _apply_preset_scales(self, scales: list[str]) -> None:
-        """Apply a list of preset scales to the clinical scales container."""
-        # Remove any existing stretches from container
-        while self.clinical_scales_container.count():
-            item = self.clinical_scales_container.takeAt(0)
-            if item.spacerItem():
-                # Just remove the stretch, no widget to delete
-                continue
-            elif item.widget():
-                item.widget().deleteLater()
-
-        for scale_name in scales:
-            self._add_clinical_scale_row(
-                scale_name, with_minus=True, on_remove=self.on_remove_callback
-            )
-
-        self._add_clinical_scale_row("", with_plus=True, on_add=self.on_add_callback)
-        self.clinical_scales_container.addStretch()
-
     def _create_notes_group(self) -> QGroupBox:
         """Create the initial notes group box."""
         gb_notes = QGroupBox("Initial notes")
@@ -1216,12 +1200,19 @@ class Step1View(BaseStepView):
 
                 # Load clinical scales
                 block0_scales = []
-                # Re-read file to get all scales from the latest initial session
+                latest_block_id = initial_rows[max_session_id]["block_id"]
+                # Re-read file to get scales from the latest initial block only
                 with open(file_path, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f, delimiter="\t")
                     for row in reader:
+                        try:
+                            bid = int(float(row.get("block_id", "")))
+                            sid = int(float(row.get("session_ID", "")))
+                        except ValueError, TypeError:
+                            continue
                         if (
-                            row.get("session_ID") == str(max_session_id)
+                            sid == max_session_id
+                            and bid == latest_block_id
                             and row.get("is_initial") == "1"
                         ):
                             sname = row.get("scale_name", None)
@@ -1230,6 +1221,15 @@ class Step1View(BaseStepView):
                                 block0_scales.append(
                                     (str(sname), "" if sval is None else str(sval))
                                 )
+
+                # Deduplicate scales by name (keep last occurrence)
+                seen_scales = set()
+                deduplicated_scales = []
+                for name, value in reversed(block0_scales):
+                    if name not in seen_scales:
+                        seen_scales.add(name)
+                        deduplicated_scales.append((name, value))
+                block0_scales = list(reversed(deduplicated_scales))
 
                 # Load notes
                 notes_val = latest_initial.get("notes", None)

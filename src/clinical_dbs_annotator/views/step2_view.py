@@ -61,12 +61,6 @@ class Step2View(BaseStepView):
         """Return the wizard header title for Step 2."""
         return "Session Scale Configuration"
 
-    def refresh_theme_icons(self) -> None:
-        """Refresh icons that depend on the current theme (call after theme toggle)."""
-        btn = self.findChild(QPushButton, "settings_session_scales")
-        if btn:
-            btn.setIcon(self._create_settings_icon())
-
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
         # Session scales group

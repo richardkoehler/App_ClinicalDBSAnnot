@@ -91,7 +91,7 @@ class Step3View(BaseStepView):
 
     def get_header_title(self) -> str:
         """Return the wizard header title for Step 3."""
-        return self._get_step_title()
+        return "Programming Session Ongoing"
 
     def _undo_last_entry(self) -> None:
         """Show confirmation dialog and delete the last block_ID entry from TSV."""
@@ -110,65 +110,15 @@ class Step3View(BaseStepView):
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
 
-        # Left macro-panel: Stimulation params + electrodes
-        left_container = QGroupBox("Session settings")
-        left_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        left_container_layout = QHBoxLayout(left_container)
-        left_container_layout.setContentsMargins(0, 0, 0, 0)
+        # Left side: Session settings (params + electrodes)
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        settings_group = self._create_session_settings_group()
+        left_layout.addWidget(settings_group)
+        left_widget.setMinimumWidth(500)
 
-        params_group = self._create_stimulation_params_group()
-
-        # Wrap sidebar in a scroll area like step1_view
-        sidebar_widget = params_group
-        sidebar_scroll = QScrollArea()
-        sidebar_scroll.setStyleSheet("""
-            QScrollArea {
-                background: transparent;
-                border: none;
-            }
-            QScrollArea > QWidget > QWidget {
-                background: transparent;
-            }
-        """)
-        sidebar_scroll.setWidgetResizable(True)
-        sidebar_scroll.setFrameShape(QFrame.NoFrame)
-        sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        sidebar_scroll.setWidget(sidebar_widget)
-
-        left_container_layout.addWidget(sidebar_scroll, 1)
-
-        electrodes_layout = QVBoxLayout()
-        electrodes_row = QHBoxLayout()
-
-        self.left_canvas_group = QGroupBox("Left electrode")
-        self.left_canvas_group.setCheckable(True)
-        self.left_canvas_group.setChecked(True)
-        self.left_canvas_group.toggled.connect(
-            lambda checked: self._toggle_electrode("left", checked)
-        )
-        left_canvas_layout = QVBoxLayout()
-        left_canvas_layout.addWidget(self.left_canvas, 1)
-        self.left_canvas_group.setLayout(left_canvas_layout)
-
-        self.right_canvas_group = QGroupBox("Right electrode")
-        self.right_canvas_group.setCheckable(True)
-        self.right_canvas_group.setChecked(True)
-        self.right_canvas_group.toggled.connect(
-            lambda checked: self._toggle_electrode("right", checked)
-        )
-        right_canvas_layout = QVBoxLayout()
-        right_canvas_layout.addWidget(self.right_canvas, 1)
-        self.right_canvas_group.setLayout(right_canvas_layout)
-
-        electrodes_row.addWidget(self.left_canvas_group, 1)
-        electrodes_row.addWidget(self.right_canvas_group, 1)
-
-        electrodes_layout.addLayout(electrodes_row)
-        electrodes_layout.addLayout(self._create_electrode_legend_layout())
-        left_container_layout.addLayout(electrodes_layout, 2)
-
-        # Right macro-panel: Scales and notes
+        # Right side: Scales and notes
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(0, 0, 0, 0)
@@ -177,20 +127,17 @@ class Step3View(BaseStepView):
         right_layout.addWidget(create_horizontal_line())
         notes_group = self._create_session_notes_group()
         right_layout.addWidget(notes_group)
-
-        # left_container.setMinimumWidth(500)
         right_widget.setMinimumWidth(400)
 
         # Splitter: right panel shrinks first (stretch=1), left stays stable (stretch=0)
         splitter = QSplitter(Qt.Horizontal)
-        splitter.addWidget(left_container)
+        splitter.addWidget(left_widget)
         splitter.addWidget(right_widget)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
         splitter.setChildrenCollapsible(False)
 
         self.main_layout.addWidget(splitter)
-        # self.main_layout.addStretch(1)
 
         self.undo_button = QPushButton("Undo")
         self.undo_button.setIcon(
@@ -231,12 +178,14 @@ class Step3View(BaseStepView):
         # Set menu to button
         self.export_button.setMenu(self.export_menu)
 
-    def _create_stimulation_params_group(self) -> QWidget:
-        """Create the stimulation parameters container."""
-        container = QWidget()
-        container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        # container.setMinimumWidth(380)
-        sidebar_layout = QVBoxLayout(container)
+    def _create_session_settings_group(self) -> QGroupBox:
+        """Create the session settings group box."""
+        gb_session = QGroupBox("Session settings")
+        gb_session.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        container_layout = QHBoxLayout()
+
+        sidebar_layout = QVBoxLayout()
 
         group_row = QGroupBox("Program")
         group_row_layout = QHBoxLayout()
@@ -261,8 +210,6 @@ class Step3View(BaseStepView):
         edit_programs_btn.setObjectName("programSettingsButton")
         edit_programs_btn.clicked.connect(self._edit_program_names)
         group_row_layout.addWidget(edit_programs_btn)
-
-        group_row_layout.addStretch()
 
         group_row.setLayout(group_row_layout)
 
@@ -447,7 +394,61 @@ class Step3View(BaseStepView):
         sidebar_layout.addWidget(self.right_group)
         sidebar_layout.addStretch(1)
 
-        return container
+        sidebar_widget = QWidget()
+        sidebar_widget.setLayout(sidebar_layout)
+        sidebar_scroll = QScrollArea()
+        sidebar_scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+        """)
+        sidebar_scroll.setWidgetResizable(True)
+        sidebar_scroll.setFrameShape(QFrame.NoFrame)
+        sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        sidebar_scroll.setMinimumWidth(380)
+        sidebar_scroll.setWidget(sidebar_widget)
+
+        electrodes_layout = QVBoxLayout()
+        electrodes_row = QHBoxLayout()
+
+        self.left_canvas_group = QGroupBox("Left electrode")
+        self.left_canvas_group.setCheckable(True)
+        self.left_canvas_group.setChecked(True)
+        self.left_canvas_group.toggled.connect(
+            lambda checked: self._toggle_electrode("left", checked)
+        )
+        left_canvas_layout = QVBoxLayout()
+        left_canvas_layout.addWidget(self.left_canvas, 1)
+        self.left_canvas_group.setLayout(left_canvas_layout)
+
+        self.right_canvas_group = QGroupBox("Right electrode")
+        self.right_canvas_group.setCheckable(True)
+        self.right_canvas_group.setChecked(True)
+        self.right_canvas_group.toggled.connect(
+            lambda checked: self._toggle_electrode("right", checked)
+        )
+        right_canvas_layout = QVBoxLayout()
+        right_canvas_layout.addWidget(self.right_canvas, 1)
+        self.right_canvas_group.setLayout(right_canvas_layout)
+
+        electrodes_row.addWidget(self.left_canvas_group, 1)
+        electrodes_row.addWidget(self.right_canvas_group, 1)
+
+        electrodes_layout.addLayout(electrodes_row)
+        electrodes_layout.addLayout(self._create_electrode_legend_layout())
+
+        container_layout.addWidget(sidebar_scroll, 0)
+        container_layout.addLayout(electrodes_layout, 1)
+
+        layout = QVBoxLayout(gb_session)
+        layout.addLayout(container_layout)
+
+        return gb_session
 
     def _on_left_canvas_validation(self, is_valid: bool, error_msg: str) -> None:
         """Callback when left electrode canvas validation state changes."""

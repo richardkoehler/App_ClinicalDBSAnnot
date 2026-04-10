@@ -6,7 +6,7 @@ containing common functionality and UI elements.
 """
 
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 
 class BaseStepView(QWidget):
@@ -82,5 +82,7 @@ class BaseStepView(QWidget):
 
     def refresh_theme_icons(self) -> None:
         """Refresh icons that depend on the current theme (call after theme toggle)."""
-        # Base implementation - subclasses can override to refresh specific buttons
-        pass
+        # Auto-discover all settings buttons by objectName pattern
+        for btn in self.findChildren(QPushButton):
+            if btn.objectName() and "settings" in btn.objectName().lower():
+                btn.setIcon(self._create_settings_icon())
