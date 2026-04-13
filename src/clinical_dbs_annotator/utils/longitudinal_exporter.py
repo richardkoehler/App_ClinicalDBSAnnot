@@ -888,8 +888,8 @@ class LongitudinalExporter:
             # --- Main scales chart with General Index on same plot ---
             p1 = win.addPlot(row=0, col=0)
             p1.setTitle("Longitudinal Scale Trends", color="k", size="14pt")
-            p1.setLabel("left", "Scale Value", color="k", size="14pt", font="Arial")
-            p1.setLabel("bottom", "Session", color="k", size="14pt", font="Arial")
+            p1.setLabel("left", "Scale Value", color="k", size="20pt", font="Arial")
+            p1.setLabel("bottom", "Session", color="k", size="20pt", font="Arial")
             p1.getAxis("bottom").setTicks([x_ticks])
             p1.getAxis("left").setStyle(tickFont=QFont("Arial", 10))
             p1.getAxis("bottom").setStyle(tickFont=QFont("Arial", 10))
