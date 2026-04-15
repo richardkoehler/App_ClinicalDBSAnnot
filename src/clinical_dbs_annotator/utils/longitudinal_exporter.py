@@ -6,7 +6,6 @@ longitudinal report in Word or PDF format, with best-entry highlighting
 based on user-selected scale optimization preferences.
 """
 
-import logging
 import os
 import re
 import tempfile
@@ -26,18 +25,21 @@ from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
 from ..config_electrode_models import ELECTRODE_MODELS, MANUFACTURERS, ContactState
 
-logger = logging.getLogger(__name__)
-
 
 class LongitudinalExporter:
     """Generate longitudinal reports from multiple annotation TSV files."""
 
     def __init__(self):
         self.scale_optimization_prefs: list = []
+        self.clinical_scale_prefs: list = []
 
     def set_scale_optimization_prefs(self, prefs: list) -> None:
         """Set scale optimization preferences for best-entry highlighting."""
         self.scale_optimization_prefs = prefs or []
+
+    def set_clinical_scale_prefs(self, prefs: list | None) -> None:
+        """Set clinical scale optimization preferences."""
+        self.clinical_scale_prefs = prefs or []
 
     # ------------------------------------------------------------------
     # Public export API
@@ -76,10 +78,9 @@ class LongitudinalExporter:
                 parent, "Export Completed", f"Report saved:\n{file_path}"
             )
             return True
-        except Exception:
-            logger.exception("Failed to export longitudinal report to Word")
+        except Exception as e:
             QMessageBox.critical(
-                parent, "Export Error", "Failed to export report.\nSee log for details."
+                parent, "Export Error", f"Failed to export report:\n{e}"
             )
             return False
 
@@ -119,22 +120,34 @@ class LongitudinalExporter:
                 try:
                     os.unlink(docx_tmp)
                 except Exception:
-                    logger.warning(
-                        "Failed to remove temporary Word file after PDF export: %s",
-                        docx_tmp,
-                        exc_info=True,
-                    )
+                    pass
 
             self._show_transient_message(
                 parent, "Export Completed", f"Report saved:\n{pdf_path}"
             )
+            self._open_file(pdf_path)
             return True
-        except Exception:
-            logger.exception("Failed to export longitudinal report to PDF")
+        except Exception as e:
             QMessageBox.critical(
-                parent, "Export Error", "Failed to export report.\nSee log for details."
+                parent, "Export Error", f"Failed to export report:\n{e}"
             )
             return False
+
+    @staticmethod
+    def _open_file(path: str) -> None:
+        """Open a file with the system default application."""
+        try:
+            import subprocess
+            import sys
+
+            if sys.platform == "win32":
+                os.startfile(path)  # noqa: S606
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", path])  # noqa: S603
+            else:
+                subprocess.Popen(["xdg-open", path])  # noqa: S603
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Report building
@@ -168,37 +181,20 @@ class LongitudinalExporter:
                 # If no date info available, return a very old date to put it at the end
                 return pd.Timestamp("1900-01-01")
             except Exception:
-                logger.warning(
-                    "Failed to derive datetime from file, using fallback ordering: %s",
-                    path,
-                    exc_info=True,
-                )
                 return pd.Timestamp("1900-01-01")
 
         # Sort files from oldest to newest
         file_paths = sorted(file_paths, key=get_file_datetime)
 
         frames = []
-        read_failures = 0
         for path in file_paths:
             try:
                 df = pd.read_csv(path, sep="\t")
                 # Tag each row with its source file for traceability
                 df["_source_file"] = os.path.basename(path)
                 frames.append(df)
-            except Exception:
-                read_failures += 1
-                logger.warning(
-                    "Could not read longitudinal input file: %s", path, exc_info=True
-                )
-
-        if read_failures:
-            logger.warning(
-                "Longitudinal report input read summary: total_files=%d read_failures=%d loaded=%d",
-                len(file_paths),
-                read_failures,
-                len(frames),
-            )
+            except Exception as e:
+                print(f"[WARNING] Could not read {path}: {e}")
 
         if not frames:
             return False
@@ -249,37 +245,63 @@ class LongitudinalExporter:
 
         doc.add_paragraph("")
 
-        # Determine which sections to include (default: sessions_overview + session_data)
+        # Determine which sections to include (default: sessions_overview + session_data children)
         all_keys = [
             "sessions_overview",
             "session_data",
+            "session_data_graph",
+            "session_data_table",
             "electrode_config",
             "programming_summary",
         ]
-        active = (
-            set(sections)
-            if sections is not None
-            else {"sessions_overview", "session_data"}
-        )
+        if sections is not None:
+            active = set(sections)
+        else:
+            # Default: sessions_overview + both session_data children
+            active = {"sessions_overview", "session_data_graph"}
 
         # Render in the defined order
         for key in all_keys:
             if key not in active:
                 continue
             if key == "sessions_overview":
+                doc.add_paragraph("")
                 self._add_sessions_overview(doc, df_all, file_paths)
-                self._add_scales_timeline_chart(doc, df_session)
+            if key == "session_data":
+                # Treat parent as both children
                 doc.add_paragraph("")
-            elif key == "session_data":
-                self._add_scales_timeline_chart(doc, df_session)
-                self._add_longitudinal_data_table(doc, df_session, file_paths)
+                doc.add_heading("Session Data", level=1)
+                self._add_scales_timeline_chart(doc, df_session, file_paths)
+                self._add_longitudinal_data_table(
+                    doc,
+                    df_session,
+                    file_paths,
+                    include_chart=False,
+                    include_heading=False,
+                )
+            elif key == "session_data_graph":
+                # Handle graph separately - add heading first
                 doc.add_paragraph("")
-            elif key == "electrode_config":
+                doc.add_heading("Session Data", level=1)
+                self._add_scales_timeline_chart(doc, df_session, file_paths)
+            elif key == "session_data_table":
+                # Handle table separately - add heading first if graph not selected
+                doc.add_paragraph("")
+                doc.add_heading("Session Data", level=1)
+                self._add_longitudinal_data_table(
+                    doc,
+                    df_session,
+                    file_paths,
+                    include_chart=False,
+                    include_heading=False,
+                )
+                doc.add_paragraph("")
+            if key == "electrode_config":
+                doc.add_paragraph("")
                 self._add_electrode_config_section(doc, df_all, file_paths)
+            if key == "programming_summary":
                 doc.add_paragraph("")
-            elif key == "programming_summary":
                 self._add_programming_summary(doc, df_all, file_paths)
-                doc.add_paragraph("")
 
         doc.save(out_path)
         return True
@@ -293,14 +315,35 @@ class LongitudinalExporter:
     ) -> None:
         """Add a summary table listing each session file with date and entry count."""
         doc.add_heading("Sessions Overview", level=1)
+        self._add_clinical_scales_timeline_chart(doc, df, file_paths)
 
         headers = ["#", "File", "Date", "Entries", "Clinical scales", "Values"]
-        col_widths = [0.25, 2.0, 1.0, 0.7, 1.2, 0.8]  # inches
         table = doc.add_table(rows=1 + len(file_paths), cols=len(headers))
         table.style = "Table Grid"
         table.autofit = False
 
-        w_twips = [Inches(w) for w in col_widths]
+        # Column widths - use full page width
+        section = doc.sections[0]
+        page_w = (
+            int(section.page_width or 0)
+            - int(section.left_margin or 0)
+            - int(section.right_margin or 0)
+        ) / 914400
+        base_w = {
+            "#": 0.25,
+            "File": 2.0,
+            "Date": 1.0,
+            "Entries": 0.7,
+            "Clinical scales": 1.2,
+            "Values": 1.0,
+        }
+        widths = [base_w.get(h, 0.8) for h in headers]
+        # Adjust the "Values" column to fill remaining space
+        values_idx = headers.index("Values")
+        used = sum(w for j, w in enumerate(widths) if j != values_idx)
+        widths[values_idx] = max(1.0, page_w - used)
+
+        w_twips = [Inches(max(0.25, w)) for w in widths]
         for row in table.rows:
             for ci, cell in enumerate(row.cells):
                 cell.width = w_twips[ci]
@@ -525,6 +568,19 @@ class LongitudinalExporter:
             t = doc.add_table(rows=4, cols=4)
             t.autofit = False
 
+            # Set column widths to use full page width
+            section = doc.sections[0]
+            page_w = (
+                int(section.page_width or 0)
+                - int(section.left_margin or 0)
+                - int(section.right_margin or 0)
+            ) / 914400
+            col_w = page_w / 4
+            w_twips = Inches(col_w)
+            for row in t.rows:
+                for cell in row.cells:
+                    cell.width = w_twips
+
             # Remove borders
             tbl = t._tbl
             tblPr = tbl.tblPr if tbl.tblPr is not None else tbl._add_tblPr()  # noqa: N806
@@ -580,11 +636,6 @@ class LongitudinalExporter:
                     try:
                         run.add_picture(png, width=Inches(1.15))
                     except Exception:
-                        logger.debug(
-                            "Failed adding electrode image to report table: %s",
-                            png,
-                            exc_info=True,
-                        )
                         pass
 
             # Cleanup temp PNG files
@@ -592,11 +643,7 @@ class LongitudinalExporter:
                 try:
                     os.unlink(pth)
                 except Exception:
-                    logger.debug(
-                        "Failed to delete temporary electrode image: %s",
-                        pth,
-                        exc_info=True,
-                    )
+                    pass
 
             doc.add_paragraph("")
 
@@ -673,6 +720,34 @@ class LongitudinalExporter:
         table = doc.add_table(rows=1 + len(rows_data), cols=len(headers))
         table.style = "Table Grid"
 
+        # Column widths - use full page width
+        section = doc.sections[0]
+        page_w = (
+            int(section.page_width or 0)
+            - int(section.left_margin or 0)
+            - int(section.right_margin or 0)
+        ) / 914400
+        base_w = {
+            "Session": 2.0,
+            "Configurations": 0.8,
+            "Amplitude (L)": 1.2,
+            "Amplitude (R)": 1.2,
+            "Frequency (L)": 1.2,
+            "Frequency (R)": 1.2,
+            "Pulse Width (L)": 1.2,
+            "Pulse Width (R)": 1.2,
+        }
+        widths = [base_w.get(h, 1.0) for h in headers]
+        # Adjust the last column to fill remaining space
+        last_idx = len(headers) - 1
+        used = sum(w for j, w in enumerate(widths) if j != last_idx)
+        widths[last_idx] = max(1.0, page_w - used)
+
+        w_twips = [Inches(max(0.25, w)) for w in widths]
+        for row in table.rows:
+            for idx, cell in enumerate(row.cells):
+                cell.width = w_twips[idx]
+
         for i, h in enumerate(headers):
             cell = table.rows[0].cells[i]
             cell.text = h
@@ -691,9 +766,22 @@ class LongitudinalExporter:
         doc: DocumentType,
         df_session: pd.DataFrame,
         file_paths: list[str] | None = None,
+        include_chart: bool = True,
+        include_heading: bool = True,
     ) -> None:
-        """Add the main longitudinal data table with green highlighting."""
-        doc.add_heading("Session Data", level=1)
+        """Add the main longitudinal data table with green highlighting.
+
+        Args:
+            doc: Word document
+            df_session: Session data DataFrame
+            file_paths: List of file paths for chart generation
+            include_chart: Whether to include the scales timeline chart
+            include_heading: Whether to include the "Session Data" heading
+        """
+        if include_heading:
+            doc.add_heading("Session Data", level=1)
+        if include_chart and file_paths:
+            self._add_scales_timeline_chart(doc, df_session, file_paths)
 
         if df_session is None or df_session.empty:
             doc.add_paragraph("No session data available.")
@@ -746,10 +834,11 @@ class LongitudinalExporter:
 
         # Column widths
         section = doc.sections[0]
-        page_width = int(section.page_width or 0)
-        left_margin = int(section.left_margin or 0)
-        right_margin = int(section.right_margin or 0)
-        page_w = (page_width - left_margin - right_margin) / 914400
+        page_w = (
+            int(section.page_width or 0)
+            - int(section.left_margin or 0)
+            - int(section.right_margin or 0)
+        ) / 914400
         base_w = {
             "date": 0.65,
             "laterality": 0.25,
@@ -840,260 +929,255 @@ class LongitudinalExporter:
         self._add_table_legend(doc, best_ids, second_ids)
 
     def _add_scales_timeline_chart(
-        self, doc: DocumentType, df_session: pd.DataFrame
+        self,
+        doc: DocumentType,
+        df_session: pd.DataFrame,
+        file_paths: list[str],
     ) -> None:
-        """Add a rainbow-colored timeline chart of scale trends with a general index line."""
-        import math as _math
-        from collections import defaultdict
-        from io import BytesIO
+        """Add a timeline chart of session scale trends across all files.
 
-        doc.add_heading("Scale Trends", level=2)
+        X-axis labels: ``{date}_{block_ID}_{run_ID}``
+        """
+        from .report_chart_utils import add_chart_to_doc, build_scales_chart
 
-        # Guard: need valid input
         if df_session is None or df_session.empty:
-            doc.add_paragraph("No session data available for chart.")
             return
         if (
             "scale_name" not in df_session.columns
             or "scale_value" not in df_session.columns
         ):
-            doc.add_paragraph("No scale columns found in session data.")
             return
 
-        # Build source-file index (chronological order)
-        sources = []
-        if "_source_file" in df_session.columns:
-            for s in df_session["_source_file"].unique():
-                if s not in sources:
-                    sources.append(s)
-        if not sources:
-            doc.add_paragraph("No source files found in session data.")
+        scale_data, x_ticks = self._collect_session_scale_data(df_session, file_paths)
+        if not scale_data:
             return
 
+        png = build_scales_chart(
+            scale_data,
+            self.scale_optimization_prefs,
+            title="Session Scale Trends",
+            x_label="Session Block",
+            y_label="Scale Value",
+            x_ticks=x_ticks,
+            rotate_x_ticks=True,
+        )
+        add_chart_to_doc(doc, png)
+
+    def _add_clinical_scales_timeline_chart(
+        self,
+        doc: DocumentType,
+        df_all: pd.DataFrame,
+        file_paths: list[str],
+    ) -> None:
+        """Add a timeline chart of clinical (baseline) scale trends.
+
+        For each source file, takes only the latest block_ID rows with
+        is_initial == 1 and plots one value per file per scale.
+        No aggregated General Index line is drawn for clinical scales.
+        X-axis labels: ``{date}_{run_ID}``
+        """
+        from .report_chart_utils import add_chart_to_doc, build_scales_chart
+
+        if df_all is None or df_all.empty:
+            return
+        if "is_initial" not in df_all.columns:
+            return
+
+        scale_data, x_ticks = self._collect_clinical_scale_data(df_all, file_paths)
+        if not scale_data:
+            return
+
+        png = build_scales_chart(
+            scale_data,
+            self.clinical_scale_prefs,
+            title="Clinical Scale Trends",
+            x_label="Session",
+            y_label="Scale Value",
+            x_ticks=x_ticks,
+            show_general_index=False,
+            rotate_x_ticks=True,
+        )
+        add_chart_to_doc(doc, png)
+
+    def _collect_clinical_scale_data(
+        self,
+        df_all: pd.DataFrame,
+        file_paths: list[str],
+    ) -> tuple[dict[str, dict[int, float]], list[tuple[int, str]]]:
+        """Collect clinical scale values using latest block_ID with is_initial=1 per file.
+
+        X-tick labels: ``{date}_{run_ID}``
+
+        Returns:
+            (scale_data, x_ticks)
+        """
+        import math as _math
+
+        if df_all is None or df_all.empty:
+            return {}, []
+        required = {"scale_name", "scale_value", "_source_file", "is_initial"}
+        if not required.issubset(df_all.columns):
+            return {}, []
+
+        df_clin = df_all.copy()
+        df_clin["is_initial"] = (
+            pd.to_numeric(df_clin["is_initial"], errors="coerce").fillna(0).astype(int)
+        )
+        df_clin = df_clin[df_clin["is_initial"] == 1]
+        if df_clin.empty:
+            return {}, []
+
+        if "block_id" in df_clin.columns:
+            df_clin["block_id"] = pd.to_numeric(
+                df_clin["block_id"], errors="coerce"
+            ).fillna(0)
+        else:
+            df_clin["block_id"] = 0
+
+        # Build ordered source list (files already sorted earliest→latest)
+        sources = [os.path.basename(fp) for fp in file_paths]
         source_idx = {s: i for i, s in enumerate(sources)}
 
-        # Collect raw (session_idx, value) pairs per scale
-        raw_data = {}  # scale_name -> {session_idx: [values]}
-        for _, row in df_session.iterrows():
-            sname = str(row.get("scale_name", "") or "").strip()
-            sval = str(row.get("scale_value", "") or "").strip()
-            src = str(row.get("_source_file", "") or "").strip()
-            if not sname or not sval or not src:
+        scale_data: dict[str, dict[int, float]] = {}
+        tick_labels: list[str] = []
+
+        for src in sources:
+            sidx = source_idx[src]
+            df_src = df_clin[df_clin["_source_file"] == src]
+
+            # Build tick label: {date}_{run_ID} - always add tick even if no data
+            date_str = self._extract_date_from_source(df_all, src)
+            run_id = self._extract_run_from_filename(src)
+            tick_labels.append(f"{date_str}_{run_id}" if run_id else date_str)
+
+            if df_src.empty:
+                # No clinical scales for this file - leave data blank
                 continue
-            try:
-                val = float(sval)
-            except ValueError:
+
+            max_bid = df_src["block_id"].max()
+            df_latest = df_src[df_src["block_id"] == max_bid]
+
+            for _, row in df_latest.iterrows():
+                sname = str(row.get("scale_name", "") or "").strip()
+                sval = str(row.get("scale_value", "") or "").strip()
+                if not sname or not sval:
+                    continue
+                try:
+                    val = float(sval)
+                except ValueError:
+                    continue
+                if _math.isnan(val):
+                    continue
+                scale_data.setdefault(sname, {})[sidx] = val
+
+        # Return tick labels even if no scale data (shows empty ticks)
+        x_ticks = [(i, lbl) for i, lbl in enumerate(tick_labels)]
+        return scale_data, x_ticks
+
+    def _collect_session_scale_data(
+        self,
+        df_session: pd.DataFrame,
+        file_paths: list[str],
+    ) -> tuple[dict[str, dict[int, float]], list[tuple[int, str]]]:
+        """Collect all session scale values across files, one point per block per file.
+
+        X-tick labels: ``{date}_{run_ID}``
+
+        Returns:
+            (scale_data, x_ticks)
+        """
+        import math as _math
+
+        if df_session is None or df_session.empty:
+            return {}, []
+        if (
+            "scale_name" not in df_session.columns
+            or "scale_value" not in df_session.columns
+            or "_source_file" not in df_session.columns
+        ):
+            return {}, []
+
+        # Ensure block_id is numeric
+        df = df_session.copy()
+        if "block_id" in df.columns:
+            df["block_id"] = pd.to_numeric(df["block_id"], errors="coerce").fillna(0)
+        else:
+            df["block_id"] = 0
+
+        # Build ordered (source, block_id) pairs as the x-axis
+        sources = [os.path.basename(fp) for fp in file_paths]
+        point_keys: list[tuple[str, float]] = []  # (source_file, block_id)
+        tick_labels: list[str] = []
+
+        for src in sources:
+            df_src = df[df["_source_file"] == src]
+            if df_src.empty:
                 continue
-            if _math.isnan(val):
-                continue
-            sidx = source_idx.get(src, 0)
-            raw_data.setdefault(sname, defaultdict(list))[sidx].append(val)
+            date_str = self._extract_date_from_source(df, src)
+            run_id = self._extract_run_from_filename(src)
 
-        if not raw_data:
-            doc.add_paragraph("No numeric scale values recorded across sessions.")
-            return
+            blocks = sorted(df_src["block_id"].unique())
+            for i, bid in enumerate(blocks):
+                point_keys.append((src, bid))
+                bid_str = str(int(bid)) if bid == int(bid) else str(bid)
+                if i == 0:
+                    # First block: full label {date}_{run_id}_{block_id}
+                    parts = [date_str]
+                    if run_id:
+                        parts.append(run_id)
+                    parts.append(bid_str)
+                    tick_labels.append("_".join(parts))
+                else:
+                    # Subsequent blocks: only block_id
+                    tick_labels.append(bid_str)
 
-        # Average values per session for each scale
-        scale_data = {}  # scale_name -> {session_idx: avg_value}
-        for name, by_session in raw_data.items():
-            scale_data[name] = {si: sum(vs) / len(vs) for si, vs in by_session.items()}
+        if not point_keys:
+            return {}, []
 
-        try:
-            import pyqtgraph as pg
-            from PySide6.QtCore import QBuffer, QIODevice, Qt
-            from PySide6.QtGui import QBrush, QColor, QFont, QPen
+        key_idx = {k: i for i, k in enumerate(point_keys)}
 
-            pg.setConfigOptions(useOpenGL=False, antialias=True)
+        scale_data: dict[str, dict[int, float]] = {}
+        for (src, bid), idx in key_idx.items():
+            df_block = df[(df["_source_file"] == src) & (df["block_id"] == bid)]
+            for _, row in df_block.iterrows():
+                sname = str(row.get("scale_name", "") or "").strip()
+                sval = str(row.get("scale_value", "") or "").strip()
+                if not sname or not sval:
+                    continue
+                try:
+                    val = float(sval)
+                except ValueError:
+                    continue
+                if _math.isnan(val):
+                    continue
+                # If multiple rows for same scale in same block, keep last
+                scale_data.setdefault(sname, {})[idx] = val
 
-            n_scales = len(scale_data)
-            rainbow = [
-                QColor.fromHsvF(i / max(n_scales, 1), 0.85, 0.85)
-                for i in range(n_scales)
-            ]
+        if not scale_data:
+            return {}, []
 
-            # Session tick labels
-            tick_labels = [
-                s.replace("_events.tsv", "").replace(".tsv", "") for s in sources
-            ]
-            x_ticks = [(i, lbl) for i, lbl in enumerate(tick_labels)]
+        x_ticks = [(i, lbl) for i, lbl in enumerate(tick_labels)]
+        return scale_data, x_ticks
 
-            has_index = n_scales >= 2
-            win = pg.GraphicsLayoutWidget()
-            win.setBackground("w")
-            win.resize(1050, 500)  # Single plot, larger for right-side legend
+    @staticmethod
+    def _extract_date_from_source(df: pd.DataFrame, source_file: str) -> str:
+        """Extract the date string for a given source file."""
+        sub = df[df["_source_file"] == source_file]
+        if "date" in sub.columns and not sub.empty:
+            dates = sub["date"].dropna().unique()
+            if len(dates) > 0:
+                return str(sorted(dates)[0])
+        # Fallback: extract from filename
+        match = re.search(r"ses-(\d{8})", source_file)
+        if match:
+            return match.group(1)
+        return "unknown"
 
-            # --- Main scales chart with General Index on same plot ---
-            p1 = win.addPlot(row=0, col=0)
-            p1.setTitle("Longitudinal Scale Trends", color="k", size="14pt")
-            p1.setLabel("left", "Scale Value", color="k", size="14pt", font="Arial")
-            p1.setLabel("bottom", "Session", color="k", size="14pt", font="Arial")
-            p1.getAxis("bottom").setTicks([x_ticks])
-            p1.getAxis("left").setStyle(tickFont=QFont("Arial", 10))
-            p1.getAxis("bottom").setStyle(tickFont=QFont("Arial", 10))
-            p1.showGrid(x=True, y=True, alpha=0.3)
-            # Legend on right side external - increase offset and add background
-            legend = p1.addLegend(
-                offset=(1.15, 0.5), pen=QPen(Qt.black, 1), brush=QBrush(Qt.white)
-            )
-            legend.setLabelTextColor("k")
-
-            # Plot individual scales with original values (no normalization)
-            for idx, (sname, pts) in enumerate(scale_data.items()):
-                c = rainbow[idx]
-                xs = sorted(pts.keys())
-                ys = [pts[x] for x in xs]
-                p1.plot(
-                    xs,
-                    ys,
-                    pen=pg.mkPen(c, width=2),
-                    symbol="o",
-                    symbolPen=pg.mkPen(c, width=1),
-                    symbolBrush=pg.mkBrush(c),
-                    symbolSize=8,
-                    name=sname,
-                )
-
-            # --- General Index on same plot (if >= 2 scales) ---
-            if has_index:
-                all_sessions = sorted({s for pts in scale_data.values() for s in pts})
-
-                # Create scale targets dictionary from preferences
-                scale_targets = {}
-                if self.scale_optimization_prefs:
-                    for pref in self.scale_optimization_prefs:
-                        if len(pref) >= 5:
-                            name, smin, smax, mode, custom_val = pref
-                            if mode == "min":
-                                scale_targets[name] = {"type": "min", "value": smin}
-                            elif mode == "max":
-                                scale_targets[name] = {"type": "max", "value": smax}
-                            elif mode == "custom":
-                                try:
-                                    scale_targets[name] = {
-                                        "type": "custom",
-                                        "value": float(custom_val),
-                                    }
-                                except ValueError:
-                                    scale_targets[name] = {
-                                        "type": "custom",
-                                        "value": 0.0,
-                                    }
-
-                index_vals = {}
-                for s in all_sessions:
-                    weighted_scores = []
-                    weights = []
-
-                    for scale_name in scale_data:
-                        if s in scale_data[scale_name]:
-                            original_value = scale_data[scale_name][s]
-
-                            # Get target for this scale
-                            if scale_name in scale_targets:
-                                target_info = scale_targets[scale_name]
-                                target_type = target_info["type"]
-                                target_value = target_info["value"]
-
-                                # Calculate distance from target (lower is better)
-                                if target_type == "min":
-                                    # For minimization: lower values are better
-                                    distance = original_value
-                                    max_possible = max(scale_data[scale_name].values())
-                                    # Normalize: 0 = at target (min), 1 = worst (max)
-                                    normalized_score = (
-                                        distance / max_possible
-                                        if max_possible > 0
-                                        else 0
-                                    )
-                                elif target_type == "max":
-                                    # For maximization: higher values are better
-                                    distance = (
-                                        max(scale_data[scale_name].values())
-                                        - original_value
-                                    )
-                                    max_possible = max(
-                                        scale_data[scale_name].values()
-                                    ) - min(scale_data[scale_name].values())
-                                    # Normalize: 0 = at target (max), 1 = worst (min)
-                                    normalized_score = (
-                                        distance / max_possible
-                                        if max_possible > 0
-                                        else 0
-                                    )
-                                elif target_type == "custom":
-                                    # For custom target: absolute distance from target
-                                    distance = abs(original_value - target_value)
-                                    max_distance = max(
-                                        abs(v - target_value)
-                                        for v in scale_data[scale_name].values()
-                                    )
-                                    # Normalize: 0 = at target, 1 = worst
-                                    normalized_score = (
-                                        distance / max_distance
-                                        if max_distance > 0
-                                        else 0
-                                    )
-
-                                # Convert to proximity score (higher is better)
-                                proximity_score = 1.0 - normalized_score
-                                weighted_scores.append(proximity_score)
-                                weights.append(1.0)  # Equal weight for now
-                            else:
-                                # No target defined: use neutral score
-                                weighted_scores.append(0.5)  # Neutral middle value
-                                weights.append(
-                                    0.5
-                                )  # Lower weight for scales without targets
-
-                    if weighted_scores and weights:
-                        # Calculate weighted average of proximity scores
-                        total_weight = sum(weights)
-                        if total_weight > 0:
-                            index_vals[s] = (
-                                sum(
-                                    w * s
-                                    for w, s in zip(
-                                        weights, weighted_scores, strict=False
-                                    )
-                                )
-                                / total_weight
-                            )
-                        else:
-                            index_vals[s] = 0.5  # Default neutral value
-
-                if index_vals:
-                    ix = sorted(index_vals.keys())
-                    iy = [index_vals[x] for x in ix]
-                    # Thicker black line for General Index
-                    p1.plot(
-                        ix,
-                        iy,
-                        pen=pg.mkPen("k", width=5),
-                        symbol="d",
-                        symbolPen="k",
-                        symbolBrush="k",
-                        symbolSize=10,
-                        name="General Index",
-                    )
-
-            # --- Export to PNG → Word ---
-            pixmap = win.grab()
-            qbuf = QBuffer()
-            qbuf.open(QIODevice.OpenModeFlag.WriteOnly)
-            pixmap.save(qbuf, "PNG")
-            qbuf.close()
-            img_buf = BytesIO(qbuf.data().data())
-            doc.add_picture(img_buf, width=Inches(6))
-            doc.add_paragraph()
-            img_buf.close()
-            win.close()
-            del win
-
-        except Exception:
-            logger.exception("Failed to generate longitudinal scale trend chart")
-            doc.add_paragraph(
-                "Chart generation error. Please check application logs for details."
-            )
+    @staticmethod
+    def _extract_run_from_filename(filename: str) -> str:
+        """Extract run-XX from a BIDS-style filename."""
+        match = re.search(r"run-(\d+)", filename)
+        return f"run{match.group(1)}" if match else ""
 
     # ------------------------------------------------------------------
     # Data helpers
@@ -1105,6 +1189,12 @@ class LongitudinalExporter:
             return df
 
         df = self._normalize_block_id(df)
+
+        # Sort by source file (chronological order) and block_id (ascending)
+        if "_source_file" in df.columns:
+            df = df.sort_values(by=["_source_file", "block_id"], ascending=[True, True])
+        elif "block_id" in df.columns:
+            df = df.sort_values(by=["block_id"], ascending=True)
 
         # Create a global entry id combining source file + block_id
         if "_source_file" in df.columns and "block_id" in df.columns:
@@ -1260,7 +1350,6 @@ class LongitudinalExporter:
             )
             return best, second
         except Exception:
-            logger.exception("Failed to rank best/second-best longitudinal entries")
             return [], []
 
     # ------------------------------------------------------------------
@@ -1290,7 +1379,7 @@ class LongitudinalExporter:
         """Render electrode configuration to a temporary PNG file."""
         try:
             from PySide6.QtGui import QColor as _QColor
-            from PySide6.QtGui import QPixmap
+            from PySide6.QtGui import QPainter, QPixmap
 
             from ..models import ElectrodeCanvas
 
@@ -1344,6 +1433,16 @@ class LongitudinalExporter:
             apply_tokens(cathode_text, ContactState.CATHODIC)
             canvas.update()
 
+            # Render with white background
+            original_paint = canvas.paintEvent
+
+            def white_bg_paint(event):
+                painter = QPainter(canvas)
+                painter.fillRect(canvas.rect(), Qt.white)
+                original_paint(event)
+
+            canvas.paintEvent = white_bg_paint  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+
             pixmap = QPixmap(canvas.size())
             pixmap.fill(Qt.white)
             canvas.render(pixmap)
@@ -1374,7 +1473,6 @@ class LongitudinalExporter:
             cropped.save(tmp.name, "PNG")
             return tmp.name
         except Exception:
-            logger.exception("Failed to render electrode image for report")
             return None
 
     @staticmethod
@@ -1436,7 +1534,7 @@ class LongitudinalExporter:
         return f"longitudinal-report_{today}{ext}"
 
     def _highlight_cells(self, row_cells, intensity: str = "best") -> None:
-        color = "C3E6CB" if intensity == "best" else "E8F5E9"
+        color = "96D2A0" if intensity == "best" else "C8EBCD"
         for cell in row_cells:
             try:
                 shd = OxmlElement("w:shd")
@@ -1472,11 +1570,11 @@ class LongitudinalExporter:
         legend.add_run("Legend: ").bold = True
         if best_ids:
             r = legend.add_run("■ ")
-            r.font.color.rgb = RGBColor(0xC3, 0xE6, 0xCB)
+            r.font.color.rgb = RGBColor(0x96, 0xD2, 0xA0)
             legend.add_run("Optimal entry    ")
         if second_ids:
             r = legend.add_run("■ ")
-            r.font.color.rgb = RGBColor(0xE8, 0xF5, 0xE9)
+            r.font.color.rgb = RGBColor(0xC8, 0xEB, 0xCD)
             legend.add_run("Second-best entry")
 
         if self.scale_optimization_prefs:

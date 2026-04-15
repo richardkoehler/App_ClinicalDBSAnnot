@@ -25,8 +25,8 @@ dependencies = [
     "python-docx>=1.1",
     "docx2pdf>=0.1.8",
     "pydantic>=2.0",
-    "pyqtgraph>=0.14.0",
     "pyside6>=6.11.0",
+    "matplotlib>=3.5",
 ]
 
 [dependency-groups]

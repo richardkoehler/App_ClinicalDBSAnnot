@@ -7,7 +7,6 @@ longitudinal report.
 """
 
 import csv
-import logging
 import os
 import re
 import typing
@@ -28,8 +27,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class FileDropZone(QWidget):
@@ -350,6 +347,49 @@ class LongitudinalReportView(QWidget):
         return list(self.loaded_files)
 
     @staticmethod
+    def _extract_scales_from_files(
+        file_paths: list[str],
+        *,
+        is_initial_filter: str,
+    ) -> list[tuple[str, str, str]]:
+        """Read TSV files and collect unique scale names filtered by is_initial.
+
+        Args:
+            file_paths: list of TSV paths to scan.
+            is_initial_filter: accepted value for the ``is_initial`` column
+                (``"0"`` for session scales, ``"1"`` for clinical scales).
+
+        Returns:
+            List of (scale_name, min_value, max_value) with observed ranges.
+        """
+        accepted = {is_initial_filter, f"{is_initial_filter}.0"}
+        scale_values: dict[str, list[float]] = {}
+
+        for path in file_paths:
+            try:
+                with open(path, newline="", encoding="utf-8") as f:
+                    reader = csv.DictReader(f, delimiter="\t")
+                    for row in reader:
+                        if row.get("is_initial", "").strip() not in accepted:
+                            continue
+                        scale_name = (row.get("scale_name") or "").strip()
+                        scale_value = (row.get("scale_value") or "").strip()
+                        if not scale_name or not scale_value:
+                            continue
+                        try:
+                            val = float(scale_value)
+                        except ValueError:
+                            continue
+                        scale_values.setdefault(scale_name, []).append(val)
+            except Exception as e:
+                print(f"[WARNING] Could not read {path}: {e}")
+
+        return [
+            (name, str(min(vals)), str(max(vals)))
+            for name, vals in scale_values.items()
+        ]
+
+    @staticmethod
     def extract_session_scales_from_files(
         file_paths: list[str],
     ) -> list[tuple[str, str, str]]:
@@ -359,49 +399,20 @@ class LongitudinalReportView(QWidget):
         Returns:
             List of (scale_name, min_value, max_value) tuples with observed ranges.
         """
-        scale_values: dict[str, list[float]] = {}
-        read_failures: list[str] = []
-        invalid_value_count = 0
+        return LongitudinalReportView._extract_scales_from_files(
+            file_paths, is_initial_filter="0"
+        )
 
-        for path in file_paths:
-            try:
-                with open(path, newline="", encoding="utf-8") as f:
-                    reader = csv.DictReader(f, delimiter="\t")
-                    for row in reader:
-                        is_initial = row.get("is_initial", "").strip()
-                        if is_initial not in ("0", "0.0"):
-                            continue
-                        scale_name = (row.get("scale_name") or "").strip()
-                        scale_value = (row.get("scale_value") or "").strip()
-                        if not scale_name or not scale_value:
-                            continue
-                        try:
-                            val = float(scale_value)
-                        except ValueError:
-                            invalid_value_count += 1
-                            continue
-                        if scale_name not in scale_values:
-                            scale_values[scale_name] = []
-                        scale_values[scale_name].append(val)
-            except Exception:
-                read_failures.append(path)
-                logger.warning(
-                    "Could not read longitudinal scales from file %s",
-                    path,
-                    exc_info=True,
-                )
+    @staticmethod
+    def extract_clinical_scales_from_files(
+        file_paths: list[str],
+    ) -> list[tuple[str, str, str]]:
+        """
+        Read all TSV files and extract unique clinical scale names (is_initial == 1).
 
-        result = []
-        for name, values in scale_values.items():
-            min_v = str(min(values))
-            max_v = str(max(values))
-            result.append((name, min_v, max_v))
-
-        if read_failures or invalid_value_count:
-            logger.warning(
-                "Extracted longitudinal scales from %d files; read_failures=%d; invalid_values=%d",
-                len(file_paths),
-                len(read_failures),
-                invalid_value_count,
-            )
-        return result
+        Returns:
+            List of (scale_name, min_value, max_value) tuples with observed ranges.
+        """
+        return LongitudinalReportView._extract_scales_from_files(
+            file_paths, is_initial_filter="1"
+        )
