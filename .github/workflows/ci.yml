@@ -29,17 +29,17 @@ jobs:
 
       - name: Lint
         run: |
-          uv run ruff check --exclude tests .
+          uv run ruff check .
 
       - name: Format
         run: |
-          uv run ruff format --check --exclude tests .
+          uv run ruff format --check .
 
-      # Tests are temporarily disabled in CI until they are ready.
-      # To re-enable, uncomment the step below once tests are stable.
-      # - name: Run pytest
-      #   run: |
-      #     uv run pytest
+      - name: Run pytest
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          uv run pytest --cov-fail-under=48
 
   type-check:
     name: Type Check
@@ -61,5 +61,5 @@ jobs:
 
       - name: Type check
         run: |
-          uv run ty check src
+          uv run ty check .
 
