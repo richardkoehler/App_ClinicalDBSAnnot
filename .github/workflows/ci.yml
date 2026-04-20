@@ -31,7 +31,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Audit dependencies for vulnerabilities
@@ -49,7 +49,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Sync dependencies
@@ -75,7 +75,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Sync dependencies
@@ -104,7 +104,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Sync dependencies
@@ -139,7 +139,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Sync dependencies (incl. build / Briefcase)
@@ -155,7 +155,7 @@ jobs:
           uv run briefcase package windows -p zip
 
       - name: Upload Briefcase ZIP artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: briefcase-windows-zip-${{ github.sha }}
           path: dist/
