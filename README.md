@@ -179,6 +179,24 @@ Signing is **not** wired in CI by default; release engineers use local or protec
 pytest
 ```
 
+### Dependency security and updates (uv)
+
+This project uses `uv` for dependency locking, security auditing, and update automation.
+
+- **Audit vulnerabilities locally:** `uv audit`
+- **Upgrade all locked dependencies:** `uv lock --upgrade`
+- **Upgrade one dependency:** `uv lock --upgrade-package <package>`
+- **Re-sync after lock changes:** `uv sync --locked --dev --group build`
+
+To reduce supply-chain risk from very new releases, dependency resolution is configured with:
+
+- `pyproject.toml` -> `[tool.uv] exclude-newer = "1 week"`
+
+In CI/automation:
+
+- `CI - Lint and Type Check` runs `uv audit` on each push/PR.
+- Dependabot updates the `uv.lock` ecosystem weekly with a 7-day cooldown before opening update PRs.
+
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
