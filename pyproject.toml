@@ -113,6 +113,9 @@ select = [
     "C4", # flake8-comprehensions
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"src/dbs_annotator/views/wizard_window.py" = ["E501"]
+
 [tool.codespell]
 # `vas` is the clinical abbreviation for "Visual Analog Scale"; without this
 # it is reported as a misspelling of "was". Add further domain terms as they
@@ -123,11 +126,8 @@ skip = "uv.lock,.venv,build,dist,htmlcov,docs/_build,*.svg,*.ico,*.png,*.pdf,*.l
 
 [tool.doc8]
 max-line-length = 100
-# D004 "literal carriage return" fires on CRLF line endings (common on Windows
-# working trees); line-ending normalisation belongs to git attributes, not
-# to the prose linter.
 ignore = ["D004"]
-ignore-path = ["docs/_build"]
+ignore-path = ["docs/_build", "docs/_templates"]
 
 [tool.interrogate]
 # Starting floor; raise as coverage improves.
