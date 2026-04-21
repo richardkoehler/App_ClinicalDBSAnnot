@@ -1,0 +1,85 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "poc-dbs-annotator"
+version = "0.1.0"
+description = "Toga PoC for the DBS Annotator migration"
+requires-python = ">=3.12"
+dependencies = [
+    "toga>=0.5.0",
+    "python-docx>=1.1",
+    "reportlab>=4.2",
+]
+
+[dependency-groups]
+build = ["briefcase>=0.3.26"]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.15.10",
+    "ty>=0.0.29",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/poc_dbs_annotator"]
+
+[tool.briefcase]
+project_name = "DBSAnnotatorPoC"
+bundle = "ch.wysscenter.dbsannotatorpoc"
+version = "0.1.0"
+license = { text = "MIT" }
+author = "WyssCenter"
+author_email = "lucia.poma@wysscenter.ch"
+url = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
+
+[tool.briefcase.app.poc_dbs_annotator]
+formal_name = "DBSAnnotatorPoC"
+description = "Toga proof-of-concept for the DBS Annotator migration"
+long_description = """
+Validates that the DBS Annotator GUI can be ported off PySide6 to
+Toga/BeeWare on Windows, Linux, macOS, iOS and Android.
+"""
+sources = ["src/poc_dbs_annotator"]
+requires = [
+    "toga-core~=0.5.0",
+    "python-docx>=1.1",
+    "reportlab>=4.2",
+]
+
+[tool.briefcase.app.poc_dbs_annotator.macOS]
+universal_build = false
+min_os_version = "13.0"
+requires = ["toga-cocoa~=0.5.0"]
+
+[tool.briefcase.app.poc_dbs_annotator.linux]
+requires = ["toga-gtk~=0.5.0"]
+
+[tool.briefcase.app.poc_dbs_annotator.linux.system.debian]
+system_requires = [
+    "libgtk-4-dev",
+    "libgirepository1.0-dev",
+    "gir1.2-webkit2-4.1",
+]
+
+[tool.briefcase.app.poc_dbs_annotator.windows]
+requires = ["toga-winforms~=0.5.0"]
+
+[tool.briefcase.app.poc_dbs_annotator.iOS]
+requires = ["toga-iOS~=0.5.0", "std-nslog~=1.0.3"]
+
+[tool.briefcase.app.poc_dbs_annotator.android]
+requires = ["toga-android~=0.5.0"]
+
+base_theme = "Theme.MaterialComponents.Light.DarkActionBar"
+
+build_gradle_dependencies = [
+    "com.google.android.material:material:1.12.0",
+    "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0",
+    "androidx.constraintlayout:constraintlayout:2.2.0",
+    "androidx.coordinatorlayout:coordinatorlayout:1.3.0",
+]
+
+[tool.briefcase.app.poc_dbs_annotator.web]
+requires = ["toga-web~=0.5.0"]
+style_framework = "Shoelace v2.3"

@@ -14,6 +14,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from .config import FS_APP_NAME, FS_ORG_NAME, ICO_FILENAME, ICON_FILENAME, ICONS_DIR
+from .gui.qt import install as install_qt_backend
 from .logging_config import setup_bootstrap_logging, setup_logging
 from .utils import get_theme_manager
 from .utils.resources import resource_path
@@ -35,6 +36,11 @@ def main() -> int:
 
         app.setApplicationName(FS_APP_NAME)
         app.setOrganizationName(FS_ORG_NAME)
+
+        # Install the GUI backend (Paths / Settings / BackgroundRunner /
+        # UpdaterStore) *after* the QApplication identity is set so that
+        # QSettings resolves to the correct org/app scope.
+        install_qt_backend()
 
         # Windows taskbar / Alt+Tab: prefer .ico, then PNG (see icons/ at repo root).
         for name in (ICO_FILENAME, ICON_FILENAME):

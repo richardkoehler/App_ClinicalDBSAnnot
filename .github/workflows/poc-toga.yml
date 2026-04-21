@@ -1,0 +1,74 @@
+name: PoC - Toga cross-platform build
+
+on:
+  pull_request:
+    paths:
+      - "poc/**"
+      - ".github/workflows/poc-toga.yml"
+  workflow_dispatch:
+
+jobs:
+  desktop:
+    name: Briefcase build ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+          - os: macos-14
+            target: macOS
+          - os: windows-latest
+            target: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Install deps
+        working-directory: poc
+        run: |
+          uv sync --group build --group dev
+      - name: Briefcase create + build
+        working-directory: poc
+        run: |
+          uv run briefcase create ${{ matrix.target }}
+          uv run briefcase build ${{ matrix.target }}
+      - name: Verify PySide6 absent from build tree
+        working-directory: poc
+        run: |
+          python scripts/verify_no_pyside6.py build
+
+  mobile:
+    name: Briefcase create ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            target: iOS
+          - os: ubuntu-latest
+            target: android
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Install deps
+        working-directory: poc
+        run: |
+          uv sync --group build --group dev
+      - name: Briefcase create ${{ matrix.target }}
+        working-directory: poc
+        run: |
+          uv run briefcase create ${{ matrix.target }}
+      - name: Verify PySide6 absent
+        working-directory: poc
+        run: |
+          python scripts/verify_no_pyside6.py build

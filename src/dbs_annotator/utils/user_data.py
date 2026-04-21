@@ -7,10 +7,11 @@ upgrades on every platform. The install directory (Windows ``Program Files`` /
 ``/opt`` or ``/usr`` prefix) is wiped or replaced by every MSI / DMG / dpkg
 upgrade and must never hold user data.
 
-The path is derived from Qt's :class:`QStandardPaths` so it automatically
-respects the platform conventions. Organization and application directory
-names are set in ``dbs_annotator.config`` as ``FS_ORG_NAME`` / ``FS_APP_NAME``
-(ASCII, no spaces) and applied in ``__main__`` via ``QApplication``:
+Paths are resolved through the GUI abstraction in :mod:`dbs_annotator.gui`
+(Qt's :class:`QStandardPaths` today; Toga's ``app.paths`` after the full
+migration). Organization and application directory names are set in
+``dbs_annotator.config`` as ``FS_ORG_NAME`` / ``FS_APP_NAME`` (ASCII, no
+spaces) and applied in ``__main__`` via ``QApplication``:
 
 * Windows: ``%LOCALAPPDATA%\\WyssCenter\\DBSAnnotator``
 * macOS:   ``~/Library/Application Support/WyssCenter/DBSAnnotator``
@@ -24,7 +25,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QStandardPaths
+from ..gui import get_paths
 
 logger = logging.getLogger(__name__)
 
@@ -32,16 +33,20 @@ logger = logging.getLogger(__name__)
 def user_data_dir() -> Path:
     """Return the platform-appropriate per-user data directory for the app.
 
-    The directory is created if it does not yet exist. If Qt cannot determine a
-    writable location (e.g. headless CI without a home directory), the caller
-    gets a sensible fallback under ``~/.dbs-annotator``.
+    The directory is created if it does not yet exist. If the GUI backend
+    cannot determine a writable location (e.g. headless CI without a home
+    directory), the caller gets a sensible fallback under ``~/.dbs-annotator``.
     """
-    location = QStandardPaths.writableLocation(
-        QStandardPaths.StandardLocation.AppLocalDataLocation
-    )
-    base = Path(location) if location else Path.home() / ".dbs-annotator"
-    base.mkdir(parents=True, exist_ok=True)
-    return base
+    try:
+        return get_paths().user_data_dir()
+    except RuntimeError:
+        # GUI backend not yet installed (e.g. early startup, tests). Fall
+        # back to a ``~/.dbs-annotator`` stub so existing call sites keep
+        # working; the real backend takes over once ``gui.qt.install()``
+        # runs in ``__main__``.
+        base = Path.home() / ".dbs-annotator"
+        base.mkdir(parents=True, exist_ok=True)
+        return base
 
 
 def user_config_file(name: str) -> Path:
@@ -55,7 +60,7 @@ def user_config_file(name: str) -> Path:
     return path
 
 
-def _legacy_qt_data_candidates() -> list[Path]:
+def _legacy_generic_data_candidates() -> list[Path]:
     """User-data directories from earlier QApplication identities.
 
     Older builds used different ``setOrganizationName`` /
@@ -65,14 +70,11 @@ def _legacy_qt_data_candidates() -> list[Path]:
     """
     candidates: list[Path] = []
     try:
-        base = QStandardPaths.writableLocation(
-            QStandardPaths.StandardLocation.GenericDataLocation
-        )
-    except Exception:
-        base = ""
-    if not base:
+        root = get_paths().generic_data_base()
+    except RuntimeError:
+        root = None
+    if root is None:
         return candidates
-    root = Path(base)
     candidates.extend(
         [
             root / "BML" / "Clinical DBS Annotator",
@@ -102,7 +104,7 @@ def _legacy_install_dir_candidates() -> list[Path]:
 
 def _legacy_candidates() -> list[Path]:
     """All legacy directories to probe, ordered from most- to least-preferred."""
-    return _legacy_qt_data_candidates() + _legacy_install_dir_candidates()
+    return _legacy_generic_data_candidates() + _legacy_install_dir_candidates()
 
 
 def migrate_legacy_file(filename: str) -> Path:

@@ -11,13 +11,13 @@ from types import TracebackType
 
 from PySide6.QtCore import (
     QMessageLogContext,
-    QStandardPaths,
     QtMsgType,
     qInstallMessageHandler,
 )
 from PySide6.QtWidgets import QApplication
 
 from . import __version__
+from .gui import get_paths
 
 _configured = False
 _log_file_path: Path | None = None
@@ -89,13 +89,7 @@ def setup_logging(_app: QApplication) -> Path:
         assert _log_file_path is not None
         return _log_file_path
 
-    base = Path(
-        QStandardPaths.writableLocation(
-            QStandardPaths.StandardLocation.AppLocalDataLocation
-        )
-    )
-    log_dir = base / "logs"
-    log_dir.mkdir(parents=True, exist_ok=True)
+    log_dir = get_paths().user_log_dir()
     log_path = log_dir / "dbs-annotator.log"
 
     fmt = logging.Formatter("%(asctime)s ¦ %(levelname)s ¦ %(name)s ¦ %(message)s")

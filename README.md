@@ -105,9 +105,20 @@ App_ClinicalDBSAnnot/
 
 Architecture follows the **Model-View-Controller (MVC)** pattern.
 
+### Cross-platform GUI migration (Qt → Toga)
+
+The desktop application ships today on **PySide6** (Qt). A parallel
+**Toga/BeeWare** port is in progress so the same codebase can target
+Windows, macOS, Linux, **iOS and Android** from a single entry point.
+See `docs/developer/toga_migration.md` for the current phase status and
+porting recipe, and `docs/developer/mobile_build.md` for the iOS /
+Android build commands. The GUI abstraction layer under
+`src/dbs_annotator/gui/` lets both backends co-exist during the
+migration; Qt stays the production path until Phase 2 completes.
+
 ### Native installers (BeeWare Briefcase)
 
-Briefcase turns this repo into **platform-native** bundles and installers. The GUI stack is **PySide6** (Qt); the packaged entrypoint is `python -m dbs_annotator` via `src/dbs_annotator/__main__.py`.
+Briefcase turns this repo into **platform-native** bundles and installers. The desktop GUI stack is **PySide6** (Qt); mobile builds use the **Toga** backend. The packaged entrypoint is `python -m dbs_annotator` via `src/dbs_annotator/__main__.py` on desktop, and `dbs_annotator.gui.toga_backend.app:main` on iOS / Android (see the target sections under `[tool.briefcase.app.dbs_annotator.*]` in `pyproject.toml`).
 
 **Install tooling (once per machine):**
 

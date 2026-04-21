@@ -172,3 +172,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Briefcase local platform venvs (large; reproducible via briefcase dev)
+.briefcase/
+
+# Ad-hoc package metadata next to poc sources
+poc/src/*.dist-info/
