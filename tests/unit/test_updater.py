@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import json
 import urllib.error
+from email.message import Message
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -41,7 +42,7 @@ def test_fetch_empty_releases_returns_none() -> None:
 def test_fetch_releases_404_returns_none() -> None:
     signals = _CheckSignals()
     worker = _CheckWorker("o/r", "1.0.0", 10.0, signals)
-    err = urllib.error.HTTPError("url", 404, "nf", {}, io.BytesIO(b""))
+    err = urllib.error.HTTPError("url", 404, "nf", Message(), io.BytesIO(b""))
     with patch("urllib.request.urlopen", side_effect=err):
         assert worker._fetch_newest_applicable_release() is None
 
@@ -50,10 +51,11 @@ def test_fetch_releases_404_returns_none() -> None:
 def test_fetch_releases_other_http_raises(code: int) -> None:
     signals = _CheckSignals()
     worker = _CheckWorker("o/r", "1.0.0", 10.0, signals)
-    err = urllib.error.HTTPError("url", code, "e", {}, io.BytesIO(b""))
-    with patch("urllib.request.urlopen", side_effect=err), pytest.raises(
-        urllib.error.HTTPError
-    ) as ctx:
+    err = urllib.error.HTTPError("url", code, "e", Message(), io.BytesIO(b""))
+    with (
+        patch("urllib.request.urlopen", side_effect=err),
+        pytest.raises(urllib.error.HTTPError) as ctx,
+    ):
         worker._fetch_newest_applicable_release()
     assert ctx.value.code == code
 
