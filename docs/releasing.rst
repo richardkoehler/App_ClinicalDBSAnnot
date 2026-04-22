@@ -24,9 +24,12 @@ under ``newsfragments/`` into ``CHANGELOG.md`` (see ``[tool.towncrier]`` in
 Day-to-day: changelog fragments
 -------------------------------
 
+.. _Keep a Changelog: https://keepachangelog.com/en/1.1.0/
+
 For each PR that should appear in the release notes, add a fragment in ``newsfragments/``
-(usually in the same PR as the change). Types are ``added``, ``changed``, ``fixed``, and
-``docs`` — for example ``123.added.md`` or ``123.docs.md`` for PR number 123.
+(usually in the same PR as the change). Types match *Types of changes* in
+`Keep a Changelog`_: ``added``, ``changed``, ``deprecated``, ``removed``, ``fixed``,
+``security`` (for example ``123.added.md`` or ``123.changed.md`` for PR number 123).
 
 Create a stub interactively:
 

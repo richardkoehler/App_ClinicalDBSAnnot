@@ -106,6 +106,32 @@ jobs:
               "`no-docs`/`internal-only` label with reviewer approval."
             );
 
+  newsfragment-naming:
+    name: News fragment naming (ID + KAC type)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate all newsfragments
+        run: |
+          python scripts/validate_newsfragments.py
+
+      - name: On PR, changed fragments must match this PR number
+        if: github.event_name == 'pull_request'
+        run: |
+          python scripts/validate_newsfragments.py \
+            --pr "${{ github.event.number }}" \
+            --diff "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+
   towncrier-fragment-gate:
     name: Changelog fragment gate (Towncrier)
     runs-on: ubuntu-latest
@@ -126,8 +152,10 @@ jobs:
             fragment:
               - 'newsfragments/*.added.md'
               - 'newsfragments/*.changed.md'
+              - 'newsfragments/*.deprecated.md'
+              - 'newsfragments/*.removed.md'
               - 'newsfragments/*.fixed.md'
-              - 'newsfragments/*.docs.md'
+              - 'newsfragments/*.security.md'
             changelog:
               - 'CHANGELOG.md'
 
@@ -172,7 +200,7 @@ jobs:
 
             core.setFailed(
               "This PR changes code/workflows without a changelog fragment. " +
-              "Add newsfragments/<PR>.(added|changed|fixed|docs).md, update CHANGELOG.md, " +
+              "Add newsfragments/<PR>.(added|changed|deprecated|removed|fixed|security).md, update CHANGELOG.md, " +
               "or apply `skip-changelog`/`internal-only` with reviewer approval."
             );
 

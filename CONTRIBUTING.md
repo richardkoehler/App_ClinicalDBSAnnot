@@ -27,11 +27,13 @@ For detailed guidelines, please see the [Contributing Guide](docs/contributing.r
 
 We use Towncrier for changelog automation.
 
-- Add one fragment per PR in `newsfragments/`:
-  - `newsfragments/<PR>.added.md`
-  - `newsfragments/<PR>.changed.md`
-  - `newsfragments/<PR>.fixed.md`
-  - `newsfragments/<PR>.docs.md`
+- Add one fragment per PR in `newsfragments/` (types from [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/)):
+  - `newsfragments/<PR>.added.md` — new features
+  - `newsfragments/<PR>.changed.md` — changes in existing functionality (including doc updates)
+  - `newsfragments/<PR>.deprecated.md` — soon-to-be removed
+  - `newsfragments/<PR>.removed.md` — removed features
+  - `newsfragments/<PR>.fixed.md` — bug fixes
+  - `newsfragments/<PR>.security.md` — vulnerability fixes
 - Use one short sentence suitable for changelog bullet points.
 - PRs without a fragment may fail CI unless explicitly labeled `skip-changelog` or `internal-only`.
 
