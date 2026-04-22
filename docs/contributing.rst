@@ -298,9 +298,11 @@ Before Submitting
 ~~~~~~~~~~~~~~~~~
 
 1. **Update documentation** in ``docs/`` when user-visible behaviour changes.
-2. **Add a Towncrier fragment** under ``newsfragments/`` (for example
-   ``newsfragments/<PR>.added.md`` or ``newsfragments/<PR>.fixed.md``).
-   ``CHANGELOG.md`` is assembled from fragments at release time.
+2. **Add a Towncrier fragment** under ``newsfragments/``. Types follow *Types of
+   changes* in `Keep a Changelog <https://keepachangelog.com/en/1.1.0/>`__ (``added``,
+   ``changed``, ``deprecated``, ``removed``, ``fixed``, ``security``); for example
+   ``newsfragments/<PR>.changed.md`` for a doc-only update. ``CHANGELOG.md`` is
+   assembled from fragments at release time.
 3. **Add or update tests** for new functionality.
 4. **Run the local quality gate**: ``ruff format``, ``ruff check``,
    ``ty check``, ``pytest``.
@@ -336,8 +338,8 @@ When creating a pull request, please include:
 - Code follows the project style (ruff, ty clean).
 - Tests added or updated and passing locally.
 - Documentation updated (``docs/`` and/or ``README.md``).
-- A ``newsfragments/<PR>.(added|changed|fixed|docs).md`` entry was added,
-  or the PR is explicitly labeled ``skip-changelog`` / ``internal-only``.
+- A ``newsfragments/<PR>.(added|changed|deprecated|removed|fixed|security).md`` entry
+  was added, or the PR is explicitly labeled ``skip-changelog`` / ``internal-only``.
 - ``uv.lock`` regenerated if dependencies changed.
 
 Review Process

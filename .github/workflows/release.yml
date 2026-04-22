@@ -56,7 +56,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          fragments=(newsfragments/*.added.md newsfragments/*.changed.md newsfragments/*.fixed.md newsfragments/*.docs.md)
+          fragments=(newsfragments/*.added.md newsfragments/*.changed.md newsfragments/*.deprecated.md newsfragments/*.removed.md newsfragments/*.fixed.md newsfragments/*.security.md)
           if [ "${#fragments[@]}" -gt 0 ]; then
             echo "::error::Unreleased Towncrier fragments remain. Build CHANGELOG.md before tagging:" >&2
             printf ' - %s\n' "${fragments[@]}" >&2
