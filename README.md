@@ -7,7 +7,7 @@
 A desktop application for annotating Deep Brain Stimulation (DBS) clinical programming sessions. Built for clinicians and researchers working with DBS systems (Medtronic Percept and others).
 
 **Version:** derived from `dbs_annotator.__version__`
-**Publisher:** Wyss Center (contact: lucia.poma@wysscenter.ch)
+**Publisher:** Wyss Center for Bio and Neuroengineering (contact: lucia.poma@wysscenter.ch)
 
 ## For End Users
 
@@ -98,7 +98,7 @@ App_ClinicalDBSAnnot/
 │   ├── config.py                 #   App configuration and constants
 │   └── config_electrode_models.py #  Electrode model definitions
 ├── styles/                       # QSS theme files (Briefcase + dev; see resource_path)
-├── icons/                        # Application icons
+├── icons/                        # Application icons (e.g. logosimple/ bundle)
 ├── scripts/                      # Utility scripts
 └── pyproject.toml                # Project configuration and dependencies
 ```
@@ -132,11 +132,11 @@ uv run briefcase package windows -p zip    # avoids WiX; omit -p (MSI) when WiX 
 
 `macOS` builds on Apple Silicon produce **arm64** artifacts when `universal_build = false` is set under `[tool.briefcase.app.dbs_annotator.macOS]` in `pyproject.toml`.
 
-**Windows Briefcase quirks:** keep `[tool.briefcase].version` in sync with `dbs_annotator.__version__` (Briefcase does not use Hatch’s dynamic `[project]` version). If `briefcase build` fails at **“Setting stub app details”** / RCEdit with **“Unable to commit changes”**, exclude the repo or `build\` from real-time antivirus scanning and retry (see [Briefcase issue #1530](https://github.com/beeware/briefcase/issues/1530)).
+**Windows Briefcase quirks:** keep `[tool.briefcase].version` in sync with `dbs_annotator.__version__` (Briefcase does not use Hatch’s dynamic `[project]` version). Bump both in one step with `uv run python scripts/release_prepare.py <version>` (or `--bump …`). If `briefcase build` fails at **“Setting stub app details”** / RCEdit with **“Unable to commit changes”**, exclude the repo or `build\` from real-time antivirus scanning and retry (see [Briefcase issue #1530](https://github.com/beeware/briefcase/issues/1530)).
 
 The Windows stub binary is named **`DBSAnnotator.exe`** (from `[tool.briefcase.app.dbs_annotator].formal_name`). After changing that field, run **`briefcase create windows app`** again (or delete `build\dbs_annotator\windows`) before **`briefcase build`**.
 
-Icons for the **stub**, **MSI/ZIP**, and **Qt** (`QApplication` / window chrome) come from **`icons/logoneutral.ico`** and **`icons/logoneutral.png`** at the **repository root** (`icon = "icons/logoneutral"` in `pyproject.toml`). That folder is also listed as a Briefcase **`sources`** entry so a sibling `icons\` directory is shipped next to the app package inside the bundle. Runtime lookup uses `resource_path()` (package dir, then `src\icons`, then repo-root `icons\`).
+Icons for the **stub**, **MSI/ZIP**, and **Qt** (`QApplication` / window chrome) live under **`icons/logosimple/`**: **`logosimple.ico`**, **`logosimple.png`**, plus **`logosimple-{16,32,64,128,256,512}.png`** for **Linux system** (BeeWare copies them into the Freedesktop hicolor tree; all six are listed in the upstream `briefcase-linux-system-template`). **`logosimple.icns`** is for macOS (build with `iconutil` on a Mac; see `scripts/build_app_icons.py`). Configure with `icon = "icons/logosimple/logosimple"` in `pyproject.toml`. The repo-root **`icons/`** tree is a Briefcase **`sources`** entry and is shipped next to the app package; runtime lookup uses `resource_path()` (package dir, then `src/icons`, then repo-root `icons/`).
 
 **Inventory (for packaging):**
 
@@ -144,7 +144,7 @@ Icons for the **stub**, **MSI/ZIP**, and **Qt** (`QApplication` / window chrome)
 | --- | --- |
 | App type | Qt **GUI** (`console_app` is false by default). |
 | Heavy deps | `PySide6`, `matplotlib`, `pandas`, `python-docx`, `docx2pdf` (Windows: `pywin32`; macOS: `appscript` via `docx2pdf`). |
-| Data files | JSON presets under `src/dbs_annotator/config/`; QSS and SVG under repo-root **`styles/`** (also a Briefcase **`sources`** entry); **`icons/logoneutral.{ico,png}`** at repo root (Briefcase + Qt). |
+| Data files | JSON presets under `src/dbs_annotator/config/`; QSS and SVG under repo-root **`styles/`** (also a Briefcase **`sources`** entry); app icons under **`icons/logosimple/`** (Briefcase + Qt). |
 | macOS entitlements | Add an entitlements plist only if you enable the Hardened Runtime and need extra capabilities (network is usually fine without custom entitlements). |
 
 ### Release signing (distribution outside store)
@@ -209,4 +209,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## Contact
 
-Wyss Center — lucia.poma@wysscenter.ch
+Wyss Center for Bio and Neuroengineering — lucia.poma@wysscenter.ch

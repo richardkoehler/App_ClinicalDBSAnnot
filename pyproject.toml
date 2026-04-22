@@ -116,6 +116,7 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"docs/conf.py" = ["E402"]
 "src/dbs_annotator/views/wizard_window.py" = ["E501"]
 
 [tool.codespell]
@@ -140,6 +141,7 @@ quiet = false
 
 [tool.uv]
 exclude-newer = "1 week"
+exclude-newer-package = { lxml = false }
 
 [tool.towncrier]
 package = "dbs_annotator"
@@ -178,7 +180,7 @@ bundle = "ch.wysscenter.dbsannotator"
 # Briefcase requires a static version here even when [project] uses dynamic version
 version = "0.4.0a1"
 license = { file = "LICENSE" }
-author = "WyssCenter"
+author = "Lucia Poma"
 author_email = "lucia.poma@wysscenter.ch"
 url = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
 
@@ -193,8 +195,8 @@ It supports clinicians and researchers by organizing session information,
 tracking stimulation settings, and generating standardized exports and reports.
 """
 sources = ["src/dbs_annotator", "icons", "styles"]
-icon = "icons/logoneutral"
-installer_icon = "icons/logoneutral"
+icon = "icons/logosimple/logosimple"
+installer_icon = "icons/logosimple/logosimple"
 requirement_installer_args = [
     "--index-url",
     "https://pypi.org/simple",
