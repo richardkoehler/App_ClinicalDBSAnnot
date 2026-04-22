@@ -13,6 +13,23 @@ A desktop application for annotating Deep Brain Stimulation (DBS) clinical progr
 
 Releases ship as **Briefcase-generated** artifacts (for example ZIP/MSI on Windows and DMG on macOS). Follow the instructions for the artifact you downloaded.
 
+### macOS / Linux — shell install (curl / wget)
+
+When the release includes **raw** `.tar.gz` bundles (from CD) or a `.deb` / `.dmg`, you can install from the repo script (uses [GitHub Releases](https://github.com/Brain-Modulation-Lab/DBSAnnotator/releases); override repo with `DBS_ANNOTATOR_INSTALL_REPO` if needed):
+
+```sh
+curl -LsSf https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.sh | sh
+```
+
+```sh
+wget -qO- https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.sh | sh
+```
+
+Pin a tag: `DBS_ANNOTATOR_VERSION=v0.4.0a1 sh` or `./install.sh v0.4.0a1`. Preview only: `sh install.sh --dry-run`.
+
+- **Linux x86_64:** prefers `dbs-annotator_*_linux_x86_64-raw.tar.gz` (installs under `~/.local/lib/dbs-annotator` and symlinks `~/.local/bin/dbs-annotator`); otherwise `sudo dpkg -i` on the `.deb`.
+- **macOS (arm64 CI build):** prefers `DBSAnnotator-*-macos-arm64-raw.tar.gz` into `/Applications` or `~/Applications`; otherwise copies from the `.dmg`.
+
 ## What It Does
 
 The application guides you through a DBS programming session in three steps:
