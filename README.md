@@ -17,11 +17,30 @@ Releases ship as **Briefcase-generated** artifacts (for example ZIP/MSI on Windo
 
 Unsigned **MSI** can trigger **SmartScreen**; the release **portable `.zip`** (same app as the MSI) avoids the MSI path. When that `.zip` is attached to a release, you can install per-user under `%LOCALAPPDATA%\WyssGeneva\DBSAnnotator\app` and get Start Menu shortcut with one line (from PowerShell; for a branch other than `main`, replace `main` in the URL):
 
+**Install (one line):** `iex` cannot take script switches — anything like `-AddDesktopShortcut` on the same line is bound to `Invoke-Expression`, not to this script.
+
 ```powershell
 iex (iwr -UseBasicParsing -UserAgent "DBSAnnotator-Install/1" -Uri "https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.ps1").Content
 ```
 
-Optional: add a desktop shortcut with `-AddDesktopShortcut`. The script picks the **newest** release that includes a `DBSAnnotator-*.zip` file (prereleases included). If your release has no `.zip` yet, tag again after [CD](.github/workflows/release.yml) has uploaded it, or run the same script with `-VersionTag vX.Y.Z` once that asset exists.
+**Optional desktop shortcut (pick one):**
+
+- **Environment (works with the `iex` one-liner above):**
+
+  ```powershell
+  $env:DBS_ANNOTATOR_ADD_DESKTOP = "1"
+  iex (iwr -UseBasicParsing -UserAgent "DBSAnnotator-Install/1" -Uri "https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.ps1").Content
+  ```
+
+- **Parameters (use a script block; same switches as a local `install.ps1`):**
+
+  ```powershell
+  & ([scriptblock]::Create((iwr -UseBasicParsing -UserAgent "DBSAnnotator-Install/1" -Uri "https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.ps1").Content)) -AddDesktopShortcut
+  ```
+
+- **No Start Menu shortcut:** set `$env:DBS_ANNOTATOR_NO_START_MENU = "1"` (same pattern as `DBS_ANNOTATOR_ADD_DESKTOP`).
+
+The script picks the **newest** release that includes a `DBSAnnotator-*.zip` file (prereleases included). If your release has no `.zip` yet, tag again after [CD](.github/workflows/release.yml) has uploaded it, or run the same script with `-VersionTag vX.Y.Z` once that asset exists.
 
 ### macOS / Linux — shell install (curl / wget)
 
